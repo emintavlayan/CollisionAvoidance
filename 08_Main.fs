@@ -13,18 +13,14 @@ type Script() =
     member __.Execute(context : ScriptContext) =
 
         let result = result {
-            // Gets the currently loaded patient and begins modifications
-            let! patient = Utilities.tryGetCurrentPlan context
-
-
-
+            // not implemented yet
             return 0
         }
 
         match result with
         | Ok messages ->
             // Show all success and error messages after workflow completes
-            Utilities.showMessageBox (String.concat "\n" messages)
+            DebugHelpers.showMessageBox "hi"
         | Error msg ->
             // Show fatal setup error (context, course, or plan loading)
-            Utilities.showMessageBox $"[Setup Error] {msg}"
+            DebugHelpers.showMessageBox $"shit happens"
