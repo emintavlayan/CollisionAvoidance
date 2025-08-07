@@ -55,3 +55,15 @@ let inline vcross (a : VVector) (b : VVector) =
         a.x * b.y - a.y * b.x
 
     VVector(x, y, z)
+
+/// Calculates the distance between two points represented by VVectors.
+let inline vdist (a : VVector) (b : VVector) : float =
+    VVector.Distance(a, b)
+
+/// Checks if vector is undefined (contains NaN or Infinity)
+let inline visUndefined (v : VVector) : bool =
+    v.IsUndefined()
+
+/// Performs epsilon-equality check between vectors.
+let inline vequal (a : VVector) (b : VVector) (epsilon : float) : bool =
+    a.EpsilonEqual(b, epsilon)

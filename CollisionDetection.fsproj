@@ -15,13 +15,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include=".editorconfig" />
     <Content Include="Esapi18\VMS.TPS.Common.Model.API.xml" />
     <Content Include="Esapi18\VMS.TPS.Common.Model.Types.xml" />
     <Content Include="SolutionItems\FodyWeavers.xml" />
-    <Content Include="SolutionItems\LICENSE.txt" />
-    <None Include="SolutionItems\.editorconfig" />
     <None Include="SolutionItems\FodyWeavers.xsd" />
-    <None Include="SolutionItems\README.md" />
     <Compile Include="01_DebugHelpers.fs" />
     <Compile Include="02_ContextRetrievalSafe.fs" />
     <Compile Include="03_BeamGeometry.fs" />
@@ -29,8 +27,10 @@
     <Compile Include="05_DiskCreation.fs" />
     <Compile Include="06_DRRGeneration.fs" />
     <Compile Include="06_DRRGenerationV2.fs" />
-    <Compile Include="07_Workflow.fs" />
-    <Compile Include="08_Main.fs" />
+    <Compile Include="07_StructureSnapshot.fs" />
+    <Compile Include="08_PointInBVolumeCheck.fs" />
+    <Compile Include="09_Workflow.fs" />
+    <Compile Include="10_Main.fs" />
   </ItemGroup>
 
   <ItemGroup>
