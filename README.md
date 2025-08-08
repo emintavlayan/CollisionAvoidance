@@ -1,2 +1,2 @@
 # CollisionDetection
-Functional Collision Detection script for Varian Truebeam Linacs using Esapi 18.0
+Functional Collision Avoidance System for Varian Truebeam Linacs using Esapi 18.0

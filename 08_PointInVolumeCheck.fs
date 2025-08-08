@@ -1,5 +1,5 @@
 (**
-    Module: PointInBodyCheck
+    Module: PointInVolumeCheck
     Purpose:
         - Provides utilities to determine whether 3D points lie within a structure volume,
         - uses pre-extracted, thread-safe SnapshotVolume slices.
@@ -15,7 +15,7 @@
         - Includes fail-fast and batched modes for flexibility.
 *)
 
-module VMS.TPS.PointInBodyCheck
+module VMS.TPS.PointInVolumeCheck
 
 open StructureSnapshot
 open VMS.TPS.Common.Model.API
