@@ -45,6 +45,7 @@ type AxialSlice = {
 /// Full thread-safe volume representation (with per-slice and global bounding boxes)
 type SnapshotVolume = {
     slices : AxialSlice[]
+    sliceThickness : float
     bounds : BoundingBox3D
 }
 
@@ -101,7 +102,7 @@ let extractSnapshotVolume
     let image =
         ss.Image
 
-    let spacing =
+    let sliceThickness =
         image.ZRes
 
     let zStart =
@@ -122,10 +123,10 @@ let extractSnapshotVolume
             then
                 let z =
                     zStart
-                    + float zIndex * spacing
+                    + float zIndex * sliceThickness
 
                 let outer =
-                    contours.[0] // ignore holes
+                    contours.[0] // ignore holes (inner contours)
 
                 let points =
                     outer
@@ -143,10 +144,12 @@ let extractSnapshotVolume
                 None)
         |> List.toArray
 
+
     let bounds =
         computeBoundingBox3D slices
 
     {
         slices = slices
+        sliceThickness = sliceThickness
         bounds = bounds
     }

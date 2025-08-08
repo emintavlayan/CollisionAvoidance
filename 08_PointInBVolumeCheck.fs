@@ -23,22 +23,22 @@ open VMS.TPS.Common.Model.Types
 open VMS.TPS.VectorMath
 open System
 
-/// Calculates whether a 2D point is inside a polygon using the even-odd rule.
+/// Performs horizontal Ray casting 2D point-in-polygon test.
 /// Uses a `mutable` accumulator (`inside`) for performance.
 /// This imperative version is significantly faster than a pure one in parallel loops.
-let pointInPolygon2D (x : float) (y : float) (poly : VVector[]) : bool =
+let pointInPolygon2D (x : float) (y : float) (polygon : VVector[]) : bool =
     let mutable inside =
         false
 
     let n =
-        poly.Length
+        polygon.Length
 
     for i = 0 to n - 1 do
         let p1 =
-            poly.[i]
+            polygon.[i]
 
         let p2 =
-            poly.[(i + 1) % n]
+            polygon.[(i + 1) % n]
 
         let crosses =
             (p1.y > y) <> (p2.y > y)
