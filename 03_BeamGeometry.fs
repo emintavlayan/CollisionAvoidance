@@ -111,17 +111,17 @@ let extractSourcePositions (step : float) (beam : Beam) =
         beam.IsocenterPosition
 
     match beam.GantryDirection with
-    | GantryDirection.None ->
+    | GantryDirection.None -> // Static beam, single source position
         let gantry =
             beam |> getGantryStartAngle
 
         let sourcePosition =
             beam.GetSourceLocation gantry
 
-        [| (isocenterPosition, sourcePosition) |]
+        [| (isocenterPosition, sourcePosition) |] // single-element array
 
     | GantryDirection.Clockwise
-    | GantryDirection.CounterClockwise ->
+    | GantryDirection.CounterClockwise -> // Arc beam, generate gantry angles
         let gantryAngles =
             beam
             |> generateGantryAngleStepsFromArc step
@@ -129,6 +129,7 @@ let extractSourcePositions (step : float) (beam : Beam) =
         gantryAngles
         |> List.map (fun g -> beam.GetSourceLocation g) // list of source positions
         |> List.map (fun src -> (isocenterPosition, src)) // list of tuples (isocenter, source position)
-        |> List.toArray // array for upcoming paralel execution
+        |> List.toArray // array is better for upcoming paralel execution
 
+    //Fallback for unexpected/future enum values — required for .NET exhaustiveness, should never occur.
     | _ -> failwithf "Unsupported GantryDirection: %A" beam.GantryDirection

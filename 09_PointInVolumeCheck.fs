@@ -26,7 +26,7 @@ open System
 /// Performs horizontal Ray casting 2D point-in-polygon test.
 /// Uses a `mutable` accumulator (`inside`) for performance.
 /// This imperative version is significantly faster than a pure one in parallel loops.
-let pointInPolygon2D (x : float) (y : float) (polygon : VVector[]) : bool =
+let isPointInPolygon2D (x : float) (y : float) (polygon : VVector[]) : bool =
     let mutable inside =
         false
 
@@ -57,18 +57,6 @@ let findNearestSlice (slices : AxialSlice[]) (zTol : float) (z : float) =
     |> Array.tryFind (fun s -> abs (s.z - z) <= zTol)
 
 /// Checks whether each point is inside the volume
-let checkPointsInside
-    (volume : SnapshotVolume)
-    (points : VVector[])
-    (zTol : float)
-    : bool[]
-    =
-    points
-    |> Array.Parallel.map (fun p ->
-        match findNearestSlice volume.slices zTol p.z with
-        | Some slice -> pointInPolygon2D p.x p.y slice.loop
-        | None -> false)
-
 /// Fail-fast version: returns true if ANY point is inside
 let anyPointInside
     (volume : SnapshotVolume)
@@ -79,5 +67,5 @@ let anyPointInside
     points
     |> Array.exists (fun p ->
         match findNearestSlice volume.slices zTol p.z with
-        | Some slice -> pointInPolygon2D p.x p.y slice.loop
+        | Some slice -> isPointInPolygon2D p.x p.y slice.loop
         | None -> false)

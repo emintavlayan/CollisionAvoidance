@@ -16,7 +16,7 @@
         - The global 3D bounding box is computed manually for compatibility and full control.
 *)
 
-module StructureSnapshot
+module VMS.TPS.StructureSnapshot
 
 open VMS.TPS.Common.Model.API
 open VMS.TPS.Common.Model.Types

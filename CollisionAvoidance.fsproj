@@ -26,11 +26,11 @@
     <Compile Include="04_VectorMath.fs" />
     <Compile Include="05_DiskCreation.fs" />
     <Compile Include="06_DRRGeneration.fs" />
-    <Compile Include="06_DRRGenerationV2.fs" />
-    <Compile Include="07_StructureSnapshot.fs" />
-    <Compile Include="08_PointInVolumeCheck.fs" />
-    <Compile Include="09_Workflow.fs" />
-    <Compile Include="10_Main.fs" />
+    <Compile Include="07_DrrExporting.fs" />
+    <Compile Include="08_StructureSnapshot.fs" />
+    <Compile Include="09_PointInVolumeCheck.fs" />
+    <Compile Include="10_Workflow.fs" />
+    <Compile Include="11_Main.fs" />
   </ItemGroup>
 
   <ItemGroup>
