@@ -133,3 +133,15 @@ let extractSourcePositions (step : float) (beam : Beam) =
 
     //Fallback for unexpected/future enum values — required for .NET exhaustiveness, should never occur.
     | _ -> failwithf "Unsupported GantryDirection: %A" beam.GantryDirection
+
+/// Safely extracts source positions, converting unexpected errors into Result.
+let tryExtractSourcePositions
+    (step : float)
+    (beam : Beam)
+    : Result<(VVector * VVector)[], string>
+    =
+    try
+        extractSourcePositions step beam
+        |> Ok
+    with ex ->
+        Error($"Failed to extract source positions: {ex.Message}")

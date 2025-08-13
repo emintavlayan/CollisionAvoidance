@@ -69,3 +69,29 @@ let anyPointInside
         match findNearestSlice volume.slices zTol p.z with
         | Some slice -> isPointInPolygon2D p.x p.y slice.loop
         | None -> false)
+
+
+/// Finds the axial slice whose Z-slab contains the point.
+/// Assumes slices are sorted by z and use uniform spacing (slice thickness).
+let findSliceForZ (slices : AxialSlice[]) (spacing : float) (zPoint : float) =
+    let half =
+        spacing / 2.0
+
+    slices
+    |> Array.tryFind (fun s ->
+        zPoint >= (s.z - half)
+        && zPoint < (s.z + half))
+
+/// Checks whether any point is inside the volume (fail-fast).
+/// Uses slice spacing to select the corresponding slab.
+let anyPointInside2
+    (volume : SnapshotVolume)
+    (points : VVector[])
+    (sliceSpacing : float)
+    : bool
+    =
+    points
+    |> Array.exists (fun p ->
+        match findSliceForZ volume.slices sliceSpacing p.z with
+        | Some slice -> isPointInPolygon2D p.x p.y slice.loop
+        | None -> false)
