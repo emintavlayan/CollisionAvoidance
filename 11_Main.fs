@@ -3,7 +3,6 @@ namespace VMS.TPS
 open VMS.TPS.Common.Model.API
 open Workflow
 open FsToolkit.ErrorHandling
-open System.Reflection
 
 [<assembly : ESAPIScript(IsWriteable = true)>]
 do ()

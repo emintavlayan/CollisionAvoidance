@@ -1,4 +1,4 @@
-// test_disk_creation.fsx
+// testDiskCreation.fsx
 
 // --- deps ---
 #r "nuget: Plotly.NET, 4.1.0"
@@ -12,6 +12,7 @@ open System
 open System.Globalization
 open Plotly.NET
 
+#load "../03_BeamGeometry.fs"
 #load "../04_VectorMath.fs"
 #load "../05_DiskCreation.fs"
 
@@ -28,15 +29,15 @@ let iso =
     VVector(0.0, 0.0, 0.0) // (0,0,0)
 
 let src =
-    VVector(0.0, 100.0, 0.0) // (0,100,0)
+    VVector(0.0, 1000.0, 0.0) // (0,100,0)
 
 // Create a disk on the beam axis. Offset 0 mm -> disk centered at isocenter.
 // pointsPerDisk controls the circle resolution.
 let pointsPerDisk =
-    30 // Number of points on the disk perimeter
+    24 // Number of points on the disk perimeter
 
 let disk =
-    generateDiskOnBeamAxis iso src 0.0<mm> pointsPerDisk
+    generateDiskOnBeamAxis iso src 900.0<mm> pointsPerDisk
 
 let diskCenter =
     List.head disk
@@ -100,7 +101,7 @@ let srcTrace =
 // Combine and style
 [ diskTrace; centerTrace; isoTrace; srcTrace ]
 |> Chart.combine
-|> Chart.withTitle "Disk on Beam Axis (offset 0 mm, radius 390 mm)"
+|> Chart.withTitle "Disk on Beam Axis (radius 390 mm)"
 |> Chart.withScene (
     Scene.init (
         XAxis = LinearAxis.init (Title = Title.init ("X (mm)")),
