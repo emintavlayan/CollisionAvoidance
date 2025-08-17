@@ -16,10 +16,10 @@
 
   <ItemGroup>
     <None Include=".editorconfig" />
-    <Content Include="Esapi18\VMS.TPS.Common.Model.API.xml" />
-    <Content Include="Esapi18\VMS.TPS.Common.Model.Types.xml" />
-    <Content Include="SolutionItems\FodyWeavers.xml" />
-    <None Include="SolutionItems\FodyWeavers.xsd" />
+    <Content Include="esapi18\VMS.TPS.Common.Model.API.xml" />
+    <Content Include="esapi18\VMS.TPS.Common.Model.Types.xml" />
+    <Content Include="solutionItems\FodyWeavers.xml" />
+    <None Include="solutionItems\FodyWeavers.xsd" />
     <Compile Include="01_DebugHelpers.fs" />
     <Compile Include="02_ContextRetrievalSafe.fs" />
     <Compile Include="03_BeamGeometry.fs" />
@@ -31,6 +31,7 @@
     <Compile Include="09_PointInVolumeCheck.fs" />
     <Compile Include="10_Workflow.fs" />
     <Compile Include="11_Main.fs" />
+    <None Include="tests\testDiskCreation.fsx" />
   </ItemGroup>
 
   <ItemGroup>
