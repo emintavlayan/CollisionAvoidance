@@ -16,6 +16,8 @@
 
   <ItemGroup>
     <None Include=".editorconfig" />
+    <None Include="esapi18\VMS.TPS.Common.Model.API.dll" />
+    <None Include="esapi18\VMS.TPS.Common.Model.Types.dll" />
     <Content Include="esapi18\VMS.TPS.Common.Model.API.xml" />
     <Content Include="esapi18\VMS.TPS.Common.Model.Types.xml" />
     <Content Include="solutionItems\FodyWeavers.xml" />
