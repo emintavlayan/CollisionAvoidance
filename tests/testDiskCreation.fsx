@@ -25,35 +25,26 @@ open VMS.TPS.Common.Model.Types
 open VMS.TPS.DiskCreation // expose generateDiskOnBeamAxis
 
 // Define the two points as VVectors
-let iso =
-    VVector(0.0, 0.0, 0.0) // (0,0,0)
+let iso = VVector(0.0, 0.0, 0.0) // (0,0,0)
 
-let src =
-    VVector(0.0, 1000.0, 0.0) // (0,100,0)
+let src = VVector(0.0, 1000.0, 0.0) // (0,100,0)
 
 // Create a disk on the beam axis. Offset 0 mm -> disk centered at isocenter.
 // pointsPerDisk controls the circle resolution.
-let pointsPerDisk =
-    24 // Number of points on the disk perimeter
+let pointsPerDisk = 24 // Number of points on the disk perimeter
 
-let disk =
-    generateDiskOnBeamAxis iso src 900.0<mm> pointsPerDisk
+let disk = generateDiskOnBeamAxis iso src 900.0<mm> pointsPerDisk
 
-let diskCenter =
-    List.head disk
+let diskCenter = List.head disk
 
-let perimeter =
-    disk |> List.tail
+let perimeter = disk |> List.tail
 
 // Helpers to split VVector list into x/y/z arrays
-let xs (pts : VVector list) =
-    pts |> List.map (fun p -> p.x)
+let xs (pts: VVector list) = pts |> List.map (fun p -> p.x)
 
-let ys (pts : VVector list) =
-    pts |> List.map (fun p -> p.y)
+let ys (pts: VVector list) = pts |> List.map (fun p -> p.y)
 
-let zs (pts : VVector list) =
-    pts |> List.map (fun p -> p.z)
+let zs (pts: VVector list) = pts |> List.map (fun p -> p.z)
 
 // Close the perimeter loop for nicer plotting
 let perimeterClosed =
@@ -81,22 +72,10 @@ let centerTrace =
     )
 
 let isoTrace =
-    Chart.Scatter3D(
-        x = [ iso.x ],
-        y = [ iso.y ],
-        z = [ iso.z ],
-        mode = Mode.Markers,
-        Name = "ISO (0,0,0)"
-    )
+    Chart.Scatter3D(x = [ iso.x ], y = [ iso.y ], z = [ iso.z ], mode = Mode.Markers, Name = "ISO (0,0,0)")
 
 let srcTrace =
-    Chart.Scatter3D(
-        x = [ src.x ],
-        y = [ src.y ],
-        z = [ src.z ],
-        mode = Mode.Markers,
-        Name = "Source (0,100,0)"
-    )
+    Chart.Scatter3D(x = [ src.x ], y = [ src.y ], z = [ src.z ], mode = Mode.Markers, Name = "Source (0,100,0)")
 
 // Combine and style
 [ diskTrace; centerTrace; isoTrace; srcTrace ]

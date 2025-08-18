@@ -18,12 +18,11 @@ module VMS.TPS.DebugHelpers
 open System.IO
 
 /// Shows the given message for debugging purposes
-let showMessageBox (message : string) =
-    System.Windows.Forms.MessageBox.Show(message)
-    |> ignore
+let showMessageBox (message: string) =
+    System.Windows.Forms.MessageBox.Show(message) |> ignore
 
 /// Logs a message to a specified log file
-let logMessage (logFilePath : string) (message : string) =
-    use writer =File.AppendText(logFilePath)
+let logMessage (logFilePath: string) (message: string) =
+    use writer = File.AppendText(logFilePath)
 
     writer.WriteLine($"{System.DateTime.Now:u} - {message}")
