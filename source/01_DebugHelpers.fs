@@ -24,7 +24,6 @@ let showMessageBox (message : string) =
 
 /// Logs a message to a specified log file
 let logMessage (logFilePath : string) (message : string) =
-    use writer =
-        File.AppendText(logFilePath)
+    use writer =File.AppendText(logFilePath)
 
     writer.WriteLine($"{System.DateTime.Now:u} - {message}")

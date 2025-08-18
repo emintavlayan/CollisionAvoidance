@@ -15,25 +15,26 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include=".editorconfig" />
     <None Include="esapi18\VMS.TPS.Common.Model.API.dll" />
     <None Include="esapi18\VMS.TPS.Common.Model.Types.dll" />
     <Content Include="esapi18\VMS.TPS.Common.Model.API.xml" />
     <Content Include="esapi18\VMS.TPS.Common.Model.Types.xml" />
+    <None Include="solutionItems\.editorconfig" />
     <Content Include="solutionItems\FodyWeavers.xml" />
     <None Include="solutionItems\FodyWeavers.xsd" />
-    <Compile Include="01_DebugHelpers.fs" />
-    <Compile Include="02_ContextRetrievalSafe.fs" />
-    <Compile Include="03_BeamGeometry.fs" />
-    <Compile Include="04_VectorMath.fs" />
-    <Compile Include="05_DiskCreation.fs" />
-    <Compile Include="06_DRRGeneration.fs" />
-    <Compile Include="07_DrrExporting.fs" />
-    <Compile Include="08_StructureSnapshot.fs" />
-    <Compile Include="09_PointInVolumeCheck.fs" />
-    <Compile Include="10_Workflow.fs" />
-    <Compile Include="11_Main.fs" />
+    <Compile Include="source\01_DebugHelpers.fs" />
+    <Compile Include="source\02_ContextRetrievalSafe.fs" />
+    <Compile Include="source\03_BeamGeometry.fs" />
+    <Compile Include="source\04_VectorMath.fs" />
+    <Compile Include="source\05_DiskCreation.fs" />
+    <Compile Include="source\06_DRRGeneration.fs" />
+    <Compile Include="source\07_DrrExporting.fs" />
+    <Compile Include="source\08_StructureSnapshot.fs" />
+    <Compile Include="source\09_PointInVolumeCheck.fs" />
+    <Compile Include="source\10_Workflow.fs" />
+    <Compile Include="source\11_Main.fs" />
     <None Include="tests\testDiskCreation.fsx" />
+    <None Include="scripts\testDiskCreation.fsx" />
   </ItemGroup>
 
   <ItemGroup>

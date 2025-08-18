@@ -13,8 +13,8 @@ open System.Globalization
 open Plotly.NET
 
 #load "../src/03_BeamGeometry.fs"
-#load "../04_VectorMath.fs"
-#load "../05_DiskCreation.fs"
+#load "../src/04_VectorMath.fs"
+#load "../src/05_DiskCreation.fs"
 
 
 open Plotly.NET
