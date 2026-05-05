@@ -17,145 +17,51 @@
 
 module VMS.TPS.PointInVolumeCheck
 
-open StructureSnapshot
 open VMS.TPS.Common.Model.API
 open VMS.TPS.Common.Model.Types
-open VMS.TPS.VectorMath
-open System
+open FsToolkit.ErrorHandling
 
-/// Performs horizontal Ray casting 2D point-in-polygon test.
-/// Uses a `mutable` accumulator (`inside`) for performance.
-/// This imperative version is significantly faster than a pure one in parallel loops.
-let isPointInPolygon2D (x : float) (y : float) (polygon : VVector[]) : bool =
-    let mutable inside =
-        false
+/// Checks whether a point is inside the structure bounding box
+let isInsideBoundingBoxOf (structure : Structure) (point : VVector) : bool =
+    let bounds =
+        structure.MeshGeometry.Bounds
 
-    let n =
-        polygon.Length
+    point.x >= bounds.X
+    && point.x <= bounds.X + bounds.SizeX
+    && point.y >= bounds.Y
+    && point.y <= bounds.Y + bounds.SizeY
+    && point.z >= bounds.Z
+    && point.z <= bounds.Z + bounds.SizeZ
 
-    for i = 0 to n - 1 do
-        let p1 =
-            polygon.[i]
+/// Checks whether a point is inside the structure segment volume
+let isInsideStructureVolumeOf (structure : Structure) (point : VVector) : bool =
+    structure.IsPointInsideSegment point
 
-        let p2 =
-            polygon.[(i + 1) % n]
-
-        let crosses =
-            (p1.y > y) <> (p2.y > y)
-            && x < (p2.x - p1.x) * (y - p1.y)
-                   / (p2.y - p1.y + 1e-12)
-                   + p1.x
-
-        if crosses then
-            inside <- not inside
-
-    inside
-
-/// Finds the nearest slice within a tolerance
-let findNearestSlice (slices : AxialSlice[]) (zTol : float) (z : float) =
-    slices
-    |> Array.tryFind (fun s -> abs (s.z - z) <= zTol)
-
-/// Checks whether each point is inside the volume
-/// Fail-fast version: returns true if ANY point is inside
-let anyPointInside
-    (volume : SnapshotVolume)
-    (points : VVector[])
-    (zTol : float)
+/// Checks whether any disk point collides with the structure
+let hasCollisionWithStructure
+    (structure : Structure)
+    (diskPoints : VVector list)
     : bool
     =
-    points
-    |> Array.exists (fun p ->
-        match findNearestSlice volume.slices zTol p.z with
-        | Some slice -> isPointInPolygon2D p.x p.y slice.loop
-        | None -> false)
 
+    diskPoints
+    |> Seq.filter (isInsideBoundingBoxOf structure)
+    |> Seq.exists (isInsideStructureVolumeOf structure)
+    // Seq exists is Lazy : if it finds one it does not calculate other
 
-/// Finds the axial slice whose Z-slab contains the point.
-/// Assumes slices are sorted by z and use uniform spacing (slice thickness).
-let findSliceForZ (slices : AxialSlice[]) (spacing : float) (zPoint : float) =
-    let half =
-        spacing / 2.0
-
-    slices
-    |> Array.tryFind (fun s ->
-        zPoint >= (s.z - half)
-        && zPoint < (s.z + half))
-
-/// Checks whether any point is inside the volume (fail-fast).
-/// Uses slice spacing to select the corresponding slab.
-let anyPointInside2
-    (volume : SnapshotVolume)
-    (points : VVector[])
-    (sliceSpacing : float)
-    : bool
+/// Checks disk points against a structure and returns collision status
+let checkDiskPointsAgainstStructure
+    (structure : Structure)
+    (diskPoints : VVector list)
+    : Result<string, string>
     =
-    points
-    |> Array.exists (fun p ->
-        match findSliceForZ volume.slices sliceSpacing p.z with
-        | Some slice -> isPointInPolygon2D p.x p.y slice.loop
-        | None -> false)
 
+    result {
+        return!
+            match hasCollisionWithStructure structure diskPoints with
+            | true ->
+                Error "Collision detected. At least one disk point is inside BODY."
 
-
-let isInsideBoundingBox
-    (volume : SnapshotVolume) 
-    (point : VVector)
-    : bool
-    =
-    [0;1;2]
-    |> List.map(fun i -> point.Item(i), volume.bounds.max.Item(i), volume.bounds.min.Item(i))
-    |> List.forall(fun (p, max, min) -> p <= max && p >= min)
-
-
-
-
-
-(*// Components for simple check
-let distanceCheck
-    (points : VVector[])
-    (distance : float)
-    : bool
-    =
-    points
-    |> Array.exists (fun p -> p.x**2*p.y**2 >= distance)
-
-
-
-let zCheck
-    (points : VVector[])
-    (zLen : float)
-    : bool
-    =
-    points
-    |> Array.exists(fun p -> abs p.z < zLen)
-
-let angleCheck //ensure degree radian consistency
-    (points : VVector[])
-    (angle1 : float)
-    (angle2 : float)
-    : bool
-    =
-    points
-    |> Array.exists(fun p -> 
-        Math.Atan p.x/p.y >= angle1/360.*2.*Math.PI && 
-        Math.Atan p.x/p.y <= angle2/360.*2.*Math.PI   )
-
-
-
-
-
-
-
-
-
-
-let checkBetweenDisks
-    (volume : SnapshotVolume)
-    (distance : float)
-    (zLen : float)
-    (angle1 : float)
-    (angle2 : float)
-    : bool
-    =
-    *)
+            | false ->
+                Ok "No collision detected. No disk point is inside BODY."
+    }

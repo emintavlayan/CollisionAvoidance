@@ -35,7 +35,7 @@ let tryGetCurrentPlan (context : ScriptContext) =
     if isNull context.PlanSetup then
         Error "No plan is currently loaded."
     else
-        Ok context.Patient
+        Ok context.PlanSetup
 
 /// Gets the currently loaded structure set or returns an error
 let tryGetCurrentStructureSet (context : ScriptContext) =

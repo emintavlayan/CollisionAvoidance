@@ -16,7 +16,7 @@ open Plotly.NET
 #load "../source/04_VectorMath.fs"
 #load "../source/05_DiskCreation.fs"
 #load "../source/08_StructureSnapshot.fs"
-#load "../source/09_PointInVolumeCheck.fs"
+//#load "../source/09_PointInVolumeCheck.fs"
 
 open Plotly.NET
 open Plotly.NET.LayoutObjects
@@ -25,7 +25,7 @@ open Plotly.NET.StyleParam
 open VMS.TPS.Common.Model.Types
 open VMS.TPS.DiskCreation // expose generateDiskOnBeamAxis
 open VMS.TPS.StructureSnapshot
-open VMS.TPS.PointInVolumeCheck
+//open VMS.TPS.PointInVolumeCheck
 
 // Define the two points as VVectors
 let iso = VVector(0.0, 0.0, 0.0) // (0,0,0)
@@ -39,7 +39,7 @@ let beamPoints =
     |> List.toArray 
 
 let beampositions = 
-    [0.0 .. 0.01 .. Math.PI]
+    [0.0 .. 0.1 .. Math.PI]
     |> List.map(fun theta -> (VVector(0.0, 0.0, 0.0), VVector(Math.Sin(theta), Math.Cos(theta), 0.0)))
     |> List.toArray
 //volume
@@ -90,19 +90,12 @@ let pointsPerDisk = 100 // Number of points on the disk perimeter
 let pointsPerLine = 100
 let radius = 390.0<mm>
 
-//let disk = generateDiskOnBeamAxis iso src 550.0<mm> pointsPerDisk
-//let disk = generateDiskOnBeamAxisForRadius iso src 550.0<mm> pointsPerDisk radius
-//let disk = generateDisksForBeamModified beamPoints 550.0<mm> pointsPerDisk 
-//let disk = generateDiskWithInterior iso src 550.0<mm> pointsPerDisk radius 50.0<mm>
-//let disk = generateDisksForBeamForRadiusModified beampositions 550.0<mm> pointsPerDisk radius 50.0<mm>
-//let disk = generateSlicesForBeamForRadiusModified beampositions 550.0<mm> pointsPerDisk radius 
-//let disk = generateSlicesAndDisksModified beampositions 550.0<mm> pointsPerDisk pointsPerLine radius 20.0<mm> 
 //let disk = generateSlicesAndHalfDisksModified beampositions 550.0<mm> pointsPerDisk pointsPerLine radius 20.0<mm> 
 let disk = generateSlicesAndHalfDisksRModified beampositions 550.0<mm> 50.0<mm> radius 
 
 let disks = List.toArray disk
-let test = anyPointInside2 volume disks simpleBoxLen
-printfn "Disk point inside box: %b"test
+//let test = anyPointInside2 volume disks simpleBoxLen
+//printfn "Disk point inside box: %b"test
 printfn "Number of points: %i"(List.length(disk))
 
 let diskCenter = List.head disk
@@ -158,6 +151,7 @@ let srcTrace =
 [ diskTrace; centerTrace; isoTrace; srcTrace; boxTrace]
 |> Chart.combine
 |> Chart.withTitle "Disk on Beam Axis (radius 390 mm)"
+|> Chart.withSize(1800,1000)
 |> Chart.withScene (
     Scene.init (
         XAxis = LinearAxis.init (Title = Title.init ("X (mm)")),
