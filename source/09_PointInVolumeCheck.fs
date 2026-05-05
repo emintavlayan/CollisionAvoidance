@@ -99,17 +99,24 @@ let anyPointInside2
 
 
 let isInsideBoundingBox
-    (body : SnapshotVolume) 
+    (volume : SnapshotVolume) 
     (point : VVector)
     : bool
     =
-    let bounds = body.bounds
-    ( list point, body.bounds.min)
-    ||> List.forall2(fun (p, min) -> x >= min)
-    
-    // Find the bounding box for body
-    // Do test to see if point inside. 
-    false
+    [0;1;2]
+    |> List.map(fun i -> point.Item(i), volume.bounds.max.Item(i), volume.bounds.min.Item(i))
+    |> List.forall(fun (p, max, min) -> p <= max && p >= min)
+
+let bodtCheck
+    (volume : SnapshotVolume)
+    (points : VVector[])
+    : VVector[]
+    =
+    points
+    |> 
+
+
+
 
 (*// Components for simple check
 let distanceCheck
