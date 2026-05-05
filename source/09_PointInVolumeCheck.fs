@@ -107,13 +107,6 @@ let isInsideBoundingBox
     |> List.map(fun i -> point.Item(i), volume.bounds.max.Item(i), volume.bounds.min.Item(i))
     |> List.forall(fun (p, max, min) -> p <= max && p >= min)
 
-let bodtCheck
-    (volume : SnapshotVolume)
-    (points : VVector[])
-    : VVector[]
-    =
-    points
-    |> 
 
 
 
