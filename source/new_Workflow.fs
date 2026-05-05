@@ -58,7 +58,7 @@ let runCollisionCheckWorkflow
         let diskPoints =
             plan
             |> getTreatmentBeams
-            |> createDiskPointsFromBeams 5.0 900.0<mm> 24
+            |> createDiskPointsFromBeams ... // not implemented yet 
 
         return!
             checkDiskPointsAgainstStructure body diskPoints

@@ -30,6 +30,7 @@ let hasCollisionWithStructure
     diskPoints
     |> Seq.filter (isInsideBoundingBoxOf structure)
     |> Seq.exists (isInsideStructureVolumeOf structure)
+    // Seq exists is Lazy : if it finds one it does not calculate other
 
 /// Checks disk points against a structure and returns collision status
 let checkDiskPointsAgainstStructure
