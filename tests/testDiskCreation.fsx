@@ -12,10 +12,11 @@ open System
 open System.Globalization
 open Plotly.NET
 
-#load "../src/03_BeamGeometry.fs"
-#load "../04_VectorMath.fs"
-#load "../05_DiskCreation.fs"
-
+#load "../source/03_BeamGeometry.fs"
+#load "../source/04_VectorMath.fs"
+#load "../source/05_DiskCreation.fs"
+#load "../source/08_StructureSnapshot.fs"
+#load "../source/09_PointInVolumeCheck.fs"
 
 open Plotly.NET
 open Plotly.NET.LayoutObjects
@@ -23,17 +24,86 @@ open Plotly.NET.StyleParam
 
 open VMS.TPS.Common.Model.Types
 open VMS.TPS.DiskCreation // expose generateDiskOnBeamAxis
+open VMS.TPS.StructureSnapshot
+open VMS.TPS.PointInVolumeCheck
 
 // Define the two points as VVectors
 let iso = VVector(0.0, 0.0, 0.0) // (0,0,0)
 
 let src = VVector(0.0, 1000.0, 0.0) // (0,100,0)
+let src2 = VVector(500.0, 1000.0, 0.0) // (0,100,0)
+let src3 = VVector(1000.0, 1000.0, 0.0) // (0,100,0)
+
+let beamPoints = 
+    [(iso, src); (iso, src2); (iso, src3)]
+    |> List.toArray 
+
+let beampositions = 
+    [0.0 .. 0.01 .. Math.PI]
+    |> List.map(fun theta -> (VVector(0.0, 0.0, 0.0), VVector(Math.Sin(theta), Math.Cos(theta), 0.0)))
+    |> List.toArray
+//volume
+let simpleBoxLen = 100.0
+let offsetX = 550.0
+let offsetY = 0.0
+let offsetZ = 0.0
+let boundingBox2D : BoundingBox2D = {
+    minX = -simpleBoxLen/2.0+offsetX
+    maxX = simpleBoxLen/2.0+offsetX
+    minY = -simpleBoxLen/2.0+offsetY
+    maxY = simpleBoxLen/2.0+offsetY
+}
+let min3D = VVector(-simpleBoxLen/2.0+offsetX, -simpleBoxLen/2.0+offsetY, -simpleBoxLen/2.0+offsetZ)
+let max3D = VVector(simpleBoxLen/2.0+offsetX, simpleBoxLen/2.0+offsetY, simpleBoxLen/2.0+offsetZ)
+let boundingBox3D : BoundingBox3D = {
+    min = min3D
+    max = max3D}
+let point1 = VVector(simpleBoxLen/2.0+offsetX, simpleBoxLen/2.0+offsetY, simpleBoxLen/2.0+offsetZ)
+let point2 = VVector(-simpleBoxLen/2.0+offsetX, simpleBoxLen/2.0+offsetY, simpleBoxLen/2.0+offsetZ)
+let point3 = VVector(-simpleBoxLen/2.0+offsetX, -simpleBoxLen/2.0+offsetY, simpleBoxLen/2.0+offsetZ)
+let point4 = VVector(simpleBoxLen/2.0+offsetX, -simpleBoxLen/2.0+offsetY, simpleBoxLen/2.0+offsetZ)
+let point5 = VVector(simpleBoxLen/2.0+offsetX, simpleBoxLen/2.0+offsetY, -simpleBoxLen/2.0+offsetZ)
+let point6 = VVector(-simpleBoxLen/2.0+offsetX, simpleBoxLen/2.0+offsetY, -simpleBoxLen/2.0+offsetZ)
+let point7 = VVector(-simpleBoxLen/2.0+offsetX, -simpleBoxLen/2.0+offsetY, -simpleBoxLen/2.0+offsetZ)
+let point8 = VVector(simpleBoxLen/2.0+offsetX, -simpleBoxLen/2.0+offsetY, -simpleBoxLen/2.0+offsetZ)
+let loop1 = [point1; point2; point3; point4]
+let loop2 = [point5; point6; point7; point8]
+let slice1 : AxialSlice = {
+    z = simpleBoxLen/2.0+offsetZ
+    loop = List.toArray loop1
+    bounds = boundingBox2D}
+let slice2 : AxialSlice = {
+    z = -simpleBoxLen/2.0+offsetZ
+    loop = List.toArray loop2
+    bounds = boundingBox2D}
+let slices = [|slice1; slice2|]
+let volume : SnapshotVolume = {
+    slices = slices
+    sliceThickness = 20.0
+    bounds = boundingBox3D}
+
+let combinedoPoints = [point1; point2; point3; point4; point5; point6; point7; point8]
 
 // Create a disk on the beam axis. Offset 0 mm -> disk centered at isocenter.
 // pointsPerDisk controls the circle resolution.
-let pointsPerDisk = 24 // Number of points on the disk perimeter
+let pointsPerDisk = 100 // Number of points on the disk perimeter
+let pointsPerLine = 100
+let radius = 390.0<mm>
 
-let disk = generateDiskOnBeamAxis iso src 900.0<mm> pointsPerDisk
+//let disk = generateDiskOnBeamAxis iso src 550.0<mm> pointsPerDisk
+//let disk = generateDiskOnBeamAxisForRadius iso src 550.0<mm> pointsPerDisk radius
+//let disk = generateDisksForBeamModified beamPoints 550.0<mm> pointsPerDisk 
+//let disk = generateDiskWithInterior iso src 550.0<mm> pointsPerDisk radius 50.0<mm>
+//let disk = generateDisksForBeamForRadiusModified beampositions 550.0<mm> pointsPerDisk radius 50.0<mm>
+//let disk = generateSlicesForBeamForRadiusModified beampositions 550.0<mm> pointsPerDisk radius 
+//let disk = generateSlicesAndDisksModified beampositions 550.0<mm> pointsPerDisk pointsPerLine radius 20.0<mm> 
+//let disk = generateSlicesAndHalfDisksModified beampositions 550.0<mm> pointsPerDisk pointsPerLine radius 20.0<mm> 
+let disk = generateSlicesAndHalfDisksRModified beampositions 550.0<mm> 50.0<mm> radius 
+
+let disks = List.toArray disk
+let test = anyPointInside2 volume disks simpleBoxLen
+printfn "Disk point inside box: %b"test
+printfn "Number of points: %i"(List.length(disk))
 
 let diskCenter = List.head disk
 
@@ -58,10 +128,17 @@ let diskTrace =
         x = xs perimeterClosed,
         y = ys perimeterClosed,
         z = zs perimeterClosed,
-        mode = Mode.Lines,
+        mode = Mode.Markers,
         Name = "Disk perimeter"
     )
-
+let boxTrace =
+    Chart.Scatter3D(
+        x = xs combinedoPoints,
+        y = ys combinedoPoints,
+        z = zs combinedoPoints,
+        mode = Mode.Lines,
+        Name = "Box perimeter"
+    )
 let centerTrace =
     Chart.Scatter3D(
         x = [ diskCenter.x ],
@@ -78,7 +155,7 @@ let srcTrace =
     Chart.Scatter3D(x = [ src.x ], y = [ src.y ], z = [ src.z ], mode = Mode.Markers, Name = "Source (0,100,0)")
 
 // Combine and style
-[ diskTrace; centerTrace; isoTrace; srcTrace ]
+[ diskTrace; centerTrace; isoTrace; srcTrace; boxTrace]
 |> Chart.combine
 |> Chart.withTitle "Disk on Beam Axis (radius 390 mm)"
 |> Chart.withScene (
@@ -90,3 +167,4 @@ let srcTrace =
     )
 )
 |> Chart.show
+

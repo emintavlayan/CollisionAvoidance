@@ -95,3 +95,67 @@ let anyPointInside2
         match findSliceForZ volume.slices sliceSpacing p.z with
         | Some slice -> isPointInPolygon2D p.x p.y slice.loop
         | None -> false)
+
+
+
+let isInsideBoundingBox
+    (body : SnapshotVolume) 
+    (point : VVector)
+    : bool
+    =
+    let bounds = body.bounds
+    ( list point, body.bounds.min)
+    ||> List.forall2(fun (p, min) -> x >= min)
+    
+    // Find the bounding box for body
+    // Do test to see if point inside. 
+    false
+
+(*// Components for simple check
+let distanceCheck
+    (points : VVector[])
+    (distance : float)
+    : bool
+    =
+    points
+    |> Array.exists (fun p -> p.x**2*p.y**2 >= distance)
+
+
+
+let zCheck
+    (points : VVector[])
+    (zLen : float)
+    : bool
+    =
+    points
+    |> Array.exists(fun p -> abs p.z < zLen)
+
+let angleCheck //ensure degree radian consistency
+    (points : VVector[])
+    (angle1 : float)
+    (angle2 : float)
+    : bool
+    =
+    points
+    |> Array.exists(fun p -> 
+        Math.Atan p.x/p.y >= angle1/360.*2.*Math.PI && 
+        Math.Atan p.x/p.y <= angle2/360.*2.*Math.PI   )
+
+
+
+
+
+
+
+
+
+
+let checkBetweenDisks
+    (volume : SnapshotVolume)
+    (distance : float)
+    (zLen : float)
+    (angle1 : float)
+    (angle2 : float)
+    : bool
+    =
+    *)

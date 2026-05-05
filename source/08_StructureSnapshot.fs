@@ -101,7 +101,7 @@ let extractSnapshotVolume
     =
     let image =
         ss.Image
-
+        
     let sliceThickness =
         image.ZRes
 

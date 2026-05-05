@@ -145,3 +145,22 @@ let tryExtractSourcePositions
         |> Ok
     with ex ->
         Error($"Failed to extract source positions: {ex.Message}")
+
+
+// Checks if all control points are coplanar
+let isBeamCoplanar 
+    (beam : Beam)
+    : bool
+    =
+    beam.ControlPoints
+    |> Seq.forall(fun cp -> cp.PatientSupportAngle = 0.0)
+
+// Checks if all beams in the plansetup is coplanar
+let isPlanCoplana
+    (plan : PlanSetup)
+    : bool 
+    =
+    plan.Beams
+    |> Seq.filter(isBeamCoplanar)
+    |> Seq.isEmpty
+
