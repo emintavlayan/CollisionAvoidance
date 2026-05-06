@@ -106,7 +106,7 @@ let generateGantryAngleStepsFromArc (step : float) (arc : Beam) =
 /// source positions for each angle, and pairs each with the same static isocenter.
 /// The array output is convenient for later parallelized processing.
 let extractSourcePositions (step : float) (beam : Beam) =
-
+    
     let isocenterPosition =
         beam.IsocenterPosition
 
@@ -146,21 +146,4 @@ let tryExtractSourcePositions
     with ex ->
         Error($"Failed to extract source positions: {ex.Message}")
 
-
-// Checks if all control points are coplanar
-let isBeamCoplanar 
-    (beam : Beam)
-    : bool
-    =
-    beam.ControlPoints
-    |> Seq.forall(fun cp -> cp.PatientSupportAngle = 0.0)
-
-// Checks if all beams in the plansetup is coplanar
-let isPlanCoplana
-    (plan : PlanSetup)
-    : bool 
-    =
-    plan.Beams
-    |> Seq.filter(isBeamCoplanar)
-    |> Seq.isEmpty
 

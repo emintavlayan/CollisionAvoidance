@@ -43,7 +43,7 @@ let hasCollisionWithStructure
     (diskPoints : VVector list)
     : bool
     =
-
+        
     diskPoints
     |> Seq.filter (isInsideBoundingBoxOf structure)
     |> Seq.exists (isInsideStructureVolumeOf structure)
@@ -55,7 +55,7 @@ let checkDiskPointsAgainstStructure
     (diskPoints : VVector list)
     : Result<string, string>
     =
-
+        
     result {
         return!
             match hasCollisionWithStructure structure diskPoints with

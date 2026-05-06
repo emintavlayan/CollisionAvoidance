@@ -89,15 +89,15 @@ let combinedoPoints = [point1; point2; point3; point4; point5; point6; point7; p
 let pointsPerDisk = 100 // Number of points on the disk perimeter
 let pointsPerLine = 100
 let radius = 390.0<mm>
-
+let stopwatch = System.Diagnostics.Stopwatch.StartNew()
 //let disk = generateSlicesAndHalfDisksModified beampositions 550.0<mm> pointsPerDisk pointsPerLine radius 20.0<mm> 
 let disk = generateSlicesAndHalfDisksRModified beampositions 550.0<mm> 50.0<mm> radius 
 
 let disks = List.toArray disk
-//let test = anyPointInside2 volume disks simpleBoxLen
-//printfn "Disk point inside box: %b"test
-printfn "Number of points: %i"(List.length(disk))
 
+printfn "Number of points: %i"(List.length(disk))
+stopwatch.Stop()
+printfn "runtime: %f ms" stopwatch.Elapsed.TotalMilliseconds
 let diskCenter = List.head disk
 
 let perimeter = disk |> List.tail

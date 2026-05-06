@@ -54,6 +54,39 @@ let createSliceAndDiskPointsFromBeams
         |> Array.collect id
         |> Array.toList)
 
+// Checks if all control points are coplanar
+let isBeamCoplanar 
+    (beam : Beam)
+    : bool
+    =
+    beam.ControlPoints
+    |> Seq.forall(fun cp -> cp.PatientSupportAngle = 0.0)
+
+// Checks if all beams in the plansetup is coplanar
+let isPlanCoplanar
+    (plan : PlanSetup)
+    : bool 
+    =
+    plan.Beams
+    |> Seq.filter(isBeamCoplanar)
+    |> Seq.isEmpty
+
+let createSliceAndDiskPointsFromBeamsNCP
+    (arcStep : float)
+    (offset : float<mm>)
+    (resolution : float<mm>)
+    (radius : float<mm>)
+    (beams : Beam list)
+    : VVector list
+    =
+
+    beams
+    |> List.collect (fun beam ->
+        generateSlicesAndHalfDisksRNCP beam arcStep offset resolution radius
+        |> Array.collect id
+        |> Array.toList)
+
+
 /// Runs the current collision check workflow
 let runCollisionCheckWorkflow
     (context : ScriptContext)
@@ -69,13 +102,18 @@ let runCollisionCheckWorkflow
 
         let! body =
             tryFindBodyStructure structureSet
-        
-        
-        let diskPoints =
-            plan
-            |> getTreatmentBeams
-            |> createSliceAndDiskPointsFromBeams 1.0 550.0<mm> 20.0<mm> 390.0<mm>
-            ///|> createDiskPointsFromBeams ... // not implemented yet 
+
+
+        let diskPoints = 
+            if isPlanCoplanar plan then
+                plan
+                |> getTreatmentBeams
+                |> createSliceAndDiskPointsFromBeams 1.0 550.0<mm> 20.0<mm> 390.0<mm>
+                ///|> createDiskPointsFromBeams ... // not implemented yet 
+            else
+                plan
+                |> getTreatmentBeams
+                |> createSliceAndDiskPointsFromBeamsNCP 1.0 550.0<mm> 20.0<mm> 390.0<mm>
             
 
         return!
