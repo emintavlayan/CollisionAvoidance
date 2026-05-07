@@ -114,8 +114,8 @@ let runCollisionCheckWorkflow
                 plan
                 |> getTreatmentBeams
                 |> createSliceAndDiskPointsFromBeamsNCP 1.0 550.0<mm> 20.0<mm> 390.0<mm>
-            
+
 
         return!
             checkDiskPointsAgainstStructure body diskPoints
-    }
+    } 

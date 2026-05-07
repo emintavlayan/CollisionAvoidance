@@ -20,6 +20,7 @@ module VMS.TPS.PointInVolumeCheck
 open VMS.TPS.Common.Model.API
 open VMS.TPS.Common.Model.Types
 open FsToolkit.ErrorHandling
+open FSharp.Collections.ParallelSeq
 
 /// Checks whether a point is inside the structure bounding box
 let isInsideBoundingBoxOf (structure : Structure) (point : VVector) : bool =
@@ -43,11 +44,32 @@ let hasCollisionWithStructure
     (diskPoints : VVector list)
     : bool
     =
-        
-    diskPoints
-    |> Seq.filter (isInsideBoundingBoxOf structure)
-    |> Seq.exists (isInsideStructureVolumeOf structure)
+    let stopWatch = System.Diagnostics.Stopwatch.StartNew()
+    let collision =
+        diskPoints
+        |> Seq.filter (isInsideBoundingBoxOf structure)
+        |> Seq.exists (isInsideStructureVolumeOf structure)
     // Seq exists is Lazy : if it finds one it does not calculate other
+    stopWatch.Stop()
+    printfn "Collsision test took %f ms"stopWatch.Elapsed.TotalMilliseconds
+    collision
+
+
+
+/// Parallelized version of has CollisionWithStructure for checking if a point is inside the structure segment volume
+let hasCollisionWithStructureParllel
+    (structure : Structure)
+    (diskPoints : VVector list)
+    : bool
+    =
+    let stopWatch = System.Diagnostics.Stopwatch.StartNew()
+    let collision =
+        diskPoints
+        |> PSeq.filter (isInsideBoundingBoxOf structure)
+        |> PSeq.exists (isInsideStructureVolumeOf structure)
+    stopWatch.Stop()
+    printfn "Parallel collsision test took %f ms"stopWatch.Elapsed.TotalMilliseconds
+    collision
 
 /// Checks disk points against a structure and returns collision status
 let checkDiskPointsAgainstStructure
