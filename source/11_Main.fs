@@ -15,7 +15,7 @@ type Script() =
 
         let result =
             runCollisionCheckWorkflow context
-
+            
         match result with
         | Ok message ->
             showMessageBox message

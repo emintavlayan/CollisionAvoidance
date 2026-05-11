@@ -20,7 +20,7 @@ open VMS.TPS.Common.Model.API
 let tryGetCurrentPatient (context : ScriptContext) =
     if isNull context.Patient then
         Error "No patient is currently loaded."
-    else
+    else 
         Ok context.Patient
 
 /// Gets the currently loaded course or returns an error

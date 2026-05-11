@@ -42,15 +42,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FSharp.Collections.ParallelSeq" Version="1.2.0" />
-    <PackageReference Include="FsToolkit.ErrorHandling" Version="5.0.0" />
-    <PackageReference Include="Costura.Fody" Version="6.0.0">
+    <PackageReference Include="Costura.Fody" Version="6.1.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>   
+    </PackageReference>
+    <PackageReference Include="FSharp.Collections.ParallelSeq" Version="1.2.0" />
+    <PackageReference Include="FsToolkit.ErrorHandling" Version="5.0.0" />   
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="PresentationCore" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="VMS.TPS.Common.Model.API">
       <HintPath>C:\Program Files (x86)\Varian\RTM\18.1\esapi\API\VMS.TPS.Common.Model.API.dll</HintPath>
@@ -58,5 +59,6 @@
     <Reference Include="VMS.TPS.Common.Model.Types">
       <HintPath>C:\Program Files (x86)\Varian\RTM\18.1\esapi\API\VMS.TPS.Common.Model.Types.dll</HintPath>
     </Reference>
+    <Reference Include="WindowsBase" />
   </ItemGroup>
 </Project>

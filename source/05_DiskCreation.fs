@@ -302,7 +302,7 @@ let generateSlicesAndHalfDisksRModified
     (radius : float<mm>) //Radius of the generated disks
     =
     let pointsPerLine = int (radius*2.0/resolution)
-    let angleRadian =System.Math.PI/2.
+    let angleRadian =System.Math.PI/2.*0.
 
     let rotation (points : VVector list) : VVector list =
         points
