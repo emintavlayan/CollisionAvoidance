@@ -143,5 +143,5 @@ let runCollisionCheckWorkflow
         showMessageBox (diskPoints.Length.ToString() + "points generated")
         return!
             //checkDiskPointsAgainstStructureMesh bodyMesh diskPoints
-            checkDiskPointsAgainstStructureTest volume bodyMesh diskPoints
+            checkDiskPointsAgainstStructure volume bodyMesh diskPoints
     } 
