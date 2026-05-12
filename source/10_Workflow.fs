@@ -7,6 +7,7 @@ open VMS.TPS.ContextRetrievalSafe
 open VMS.TPS.DiskCreation
 open VMS.TPS.PointInVolumeCheck
 open VMS.TPS.DebugHelpers
+open StructureSnapshot
 open System.Windows.Media.Media3D;
 
 /// Finds the BODY structure in the current structure set
@@ -115,14 +116,17 @@ let runCollisionCheckWorkflow
         showMessageBox "body ok"
 
         let bodyMesh = body.MeshGeometry.Clone()
-        
+        //let structureSetCopy = structureSet.Copy()
 
-        
+        //let! bodyCopy =
+        //    tryFindBodyStructure structureSetCopy
+
+        let volume = extractSnapshotVolume structureSet body
 
         let diskPoints = 
             plan
             |> getTreatmentBeams
-            |> createSliceAndDiskPointsFromBeams 5 550.0<mm> 20.0<mm> 390.0<mm>
+            |> createSliceAndDiskPointsFromBeams 1 550.0<mm> 20.0<mm> 390.0<mm>
             (*
             if isPlanCoplanar plan then
                 plan
@@ -133,10 +137,11 @@ let runCollisionCheckWorkflow
                 |> getTreatmentBeams
                 |> createSliceAndDiskPointsFromBeamsNCP 5 550.0<mm> 10.0<mm> 390.0<mm>
                 *)
-
+       
         
         
-        showMessageBox "points generated"
+        showMessageBox (diskPoints.Length.ToString() + "points generated")
         return!
-            checkDiskPointsAgainstStructureMesh bodyMesh diskPoints
+            //checkDiskPointsAgainstStructureMesh bodyMesh diskPoints
+            checkDiskPointsAgainstStructureTest volume bodyMesh diskPoints
     } 
