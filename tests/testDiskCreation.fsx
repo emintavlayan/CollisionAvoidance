@@ -25,23 +25,21 @@ open Plotly.NET.StyleParam
 open VMS.TPS.Common.Model.Types
 open VMS.TPS.DiskCreation // expose generateDiskOnBeamAxis
 open VMS.TPS.StructureSnapshot
+open VMS.TPS.VectorMath
 //open VMS.TPS.PointInVolumeCheck
 
-// Define the two points as VVectors
-let iso = VVector(0.0, 0.0, 0.0) // (0,0,0)
 
-let src = VVector(0.0, 1000.0, 0.0) // (0,100,0)
-let src2 = VVector(500.0, 1000.0, 0.0) // (0,100,0)
-let src3 = VVector(1000.0, 1000.0, 0.0) // (0,100,0)
 
-let beamPoints = 
-    [(iso, src); (iso, src2); (iso, src3)]
-    |> List.toArray 
-
+let angle = System.Math.PI/2.*3.
+let shift = VVector(-200.0, -150.0, -740.0)
 let beampositions = 
     [0.0 .. 0.1 .. Math.PI]
-    |> List.map(fun theta -> (VVector(0.0, 0.0, 0.0), VVector(Math.Sin(theta), Math.Cos(theta), 0.0)))
+    |> List.map(fun theta -> (VVector(0.0, 0.0, 0.0), VVector(1000.0*Math.Sin(theta)*System.Double.Cos(angle), 1000.0*Math.Cos(theta), -1000.0*Math.Sin(theta)*System.Double.Sin(angle))))
     |> List.toArray
+    |> Array.map(fun (iso, src) -> vadd iso shift, vadd src shift)
+    
+let iso, src = beampositions[0]
+
 //volume
 let simpleBoxLen = 100.0
 let offsetX = 550.0
@@ -91,7 +89,7 @@ let pointsPerLine = 100
 let radius = 390.0<mm>
 let stopwatch = System.Diagnostics.Stopwatch.StartNew()
 //let disk = generateSlicesAndHalfDisksModified beampositions 550.0<mm> pointsPerDisk pointsPerLine radius 20.0<mm> 
-let disk = generateSlicesAndHalfDisksRModified beampositions 550.0<mm> 50.0<mm> radius 
+let disk = generateSlicesAndHalfDisksRModified beampositions 550.0<mm> 50.0<mm> radius angle
 
 let disks = List.toArray disk
 
@@ -140,6 +138,7 @@ let centerTrace =
         mode = Mode.Markers,
         Name = "Disk center"
     )
+
 
 let isoTrace =
     Chart.Scatter3D(x = [ iso.x ], y = [ iso.y ], z = [ iso.z ], mode = Mode.Markers, Name = "ISO (0,0,0)")

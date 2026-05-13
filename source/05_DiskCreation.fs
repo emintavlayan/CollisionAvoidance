@@ -95,10 +95,12 @@ let generateLineOnBeamAxis
     (offset : float<mm>) // Distance from isocenter along axis toward the source (+) or away (−)
     (pointsPerLine : int) // Number of points sampled on each line
     (length : float<mm>) // Length of the line
+    (angle : float)
     =
     // Calculate direction from isocenter to source
     let dir =
         vnormalize (sourcePosition - isocenter)
+
 
     // lineCenter is 'distance' away from isocenter along dir
     let lineCenter =
@@ -112,12 +114,13 @@ let generateLineOnBeamAxis
                 float length * float i
                 / float pointsPerLine - float length / 2.0
 
-            let offset = VVector(0.0, 0.0, linDis)
+            let offsetVector = VVector(System.Math.Sin(angle)*linDis, 0.0, System.Math.Cos(angle)*linDis)
+
                 
-            lineCenter + offset)
+            lineCenter + offsetVector)
 
     linePoints
-        
+
 
 
 let generateHalfDiskOnBeamAxisForRadius
@@ -127,6 +130,7 @@ let generateHalfDiskOnBeamAxisForRadius
     (pointsPerDisk : int) // Number of points sampled on the disk perimeter
     (radius : float<mm>) // Radius of the disk
     (firstDisk : bool) // Statement on wether this is the first disk
+    (angle : float)
     : VVector list
     =
     // Calculate direction from isocenter to source
@@ -153,9 +157,9 @@ let generateHalfDiskOnBeamAxisForRadius
 
     let halfValue =
         if firstDisk then
-            System.Math.PI*0.5
+            System.Math.PI*0.5 + angle
         else
-            System.Math.PI*1.5
+            System.Math.PI*1.5 - angle
 
     let perimeterPoints =
         [ 0 .. pointsPerDisk ]
@@ -172,77 +176,6 @@ let generateHalfDiskOnBeamAxisForRadius
 
     perimeterPoints
 
-let generateHalfDiskWithInterior
-    (isocenter : VVector) // Center point of the plan/beam in DICOM coords
-    (sourcePosition : VVector) // Radiation source position in DICOM coords
-    (offset : float<mm>) // Distance from isocenter along axis toward the source (+) or away (−)
-    (pointsPerDisk : int) // Number of points sampled on the disk perimeter
-    (radius : float<mm>) // Radius of the outer disk
-    (radiusSteps : float<mm>) //Distance between each disk radii
-    (firstDisk : bool) // Statement on wether this is the first disk
-    : VVector list
-    =
-    [0.0<mm> .. radiusSteps .. radius] 
-    |> List.map(fun r ->
-        generateHalfDiskOnBeamAxisForRadius isocenter sourcePosition offset pointsPerDisk r firstDisk)
-    |> List.concat
-
-let generateSlicesAndHalfDisks
-    (beam : Beam) // Plan beam to sample
-    (arcStep : float) // Step size in degrees for arc sampling; ignored for static beams
-    (offset : float<mm>) // Distance from isocenter along the beam axis for each disk
-    (pointsPerDisk : int) // Number of perimeter points per disk
-    (pointsPerLine : int) // Number of points per line
-    (radius : float<mm>) // Radius of the generated disks
-    (radiusSteps : float<mm>) //Distance between each disk radii
-    =
-    let beamPositions = 
-        beam
-        |> extractSourcePositions arcStep
-
-    let linePoints = 
-        beamPositions
-        |> Array.map (fun (iso, src) ->
-            generateLineOnBeamAxis iso src offset pointsPerLine (radius*2.0) 
-            |> List.toArray)
-
-    //add disk points
-    let diskPoints = 
-        ([|Array.head(beamPositions); Array.last(beamPositions)|], [|true;false|])
-        ||> Array.map2 (fun (iso, src) fst ->
-            generateHalfDiskWithInterior iso src offset pointsPerDisk radius radiusSteps fst
-            |> List.toArray)
-    Array.append diskPoints linePoints
-
-
-let generateSlicesAndHalfDisksModified
-    (srcPositions : (VVector*VVector) array)
-    (offset : float<mm>) // Distance from isocenter along the beam axis for each disk
-    (pointsPerDisk : int) // Number of perimeter points per disk
-    (pointsPerLine : int) // Number of points per line
-    (radius : float<mm>) // Radius of the generated disks
-    (radiusSteps : float<mm>) //Distance between each disk radii
-    =
- 
-    let linePoints = 
-        srcPositions
-        |> Array.map (fun (iso, src) ->
-            generateLineOnBeamAxis iso src offset pointsPerLine (radius*2.0) 
-            |> List.toArray)
-
-    let diskPoints = 
-        ([|Array.head(srcPositions); Array.last(srcPositions)|], [|true;false|])
-        ||> Array.map2 (fun (iso, src) fst ->
-            generateHalfDiskWithInterior iso src offset pointsPerDisk radius radiusSteps fst
-            |> List.toArray)
-    Array.append diskPoints linePoints
-    |> Array.concat
-    |> Array.toList
-
-
-
-
-
 
 let generateHalfDiskWithInteriorR
     (isocenter : VVector) // Center point of the plan/beam in DICOM coords
@@ -251,6 +184,7 @@ let generateHalfDiskWithInteriorR
     (radius : float<mm>) // Radius of the outer disk
     (resolution : float<mm>) // Approximate distance between points
     (firstDisk : bool) // Statement on wether this is the first disk
+    (angle : float)
     : VVector list
     =
     let radii = List.append [0.0<mm> .. resolution .. radius] [radius]
@@ -260,7 +194,7 @@ let generateHalfDiskWithInteriorR
         
     (radii, pointsPerDisk)
     ||> List.map2(fun r res ->
-        generateHalfDiskOnBeamAxisForRadius isocenter sourcePosition offset res r firstDisk)
+        generateHalfDiskOnBeamAxisForRadius isocenter sourcePosition offset res r firstDisk angle)
     |> List.concat
 
    
@@ -269,12 +203,16 @@ let generateHalfDiskWithInteriorR
 
 let generateSlicesAndHalfDisksR
     (beam : Beam) // Plan beam to sample
-    (arcStep : float) // Step size in degrees for arc sampling; ignored for static beams
+    //(arcStep : float) // Step size in degrees for arc sampling; ignored for static beams
     (offset : float<mm>) // Distance from isocenter along the beam axis for each disk
     (resolution : float<mm>) // Approximate distance between points
     (radius : float<mm>) // Radius of the generated disks
 
     =
+    let arcStep = (180./System.Math.PI)*(resolution/radius)
+    let angleRadian = System.Math.PI/2.*beam.ControlPoints[0].PatientSupportAngle
+   
+    
     let beamPositions = 
         beam
         |> extractSourcePositions arcStep
@@ -284,13 +222,13 @@ let generateSlicesAndHalfDisksR
     let linePoints = 
         beamPositions
         |> Array.map (fun (iso, src) ->
-            generateLineOnBeamAxis iso src offset pointsPerLine (radius*2.0) 
+            generateLineOnBeamAxis iso src offset pointsPerLine (radius*2.0) angleRadian
             |> List.toArray)
 
     let diskPoints = 
         ([|Array.head(beamPositions); Array.last(beamPositions)|], [|true;false|])
         ||> Array.map2 (fun (iso, src) fst ->
-            generateHalfDiskWithInteriorR iso src offset radius resolution fst
+            generateHalfDiskWithInteriorR iso src offset radius resolution fst angleRadian
             |> List.toArray)
     Array.append diskPoints linePoints
 
@@ -300,9 +238,9 @@ let generateSlicesAndHalfDisksRModified
     (offset : float<mm>) // Distance from isocenter along the beam axis for each disk
     (resolution : float<mm>) // Approximate distance between points
     (radius : float<mm>) //Radius of the generated disks
+    (angleRadian : float)
     =
     let pointsPerLine = int (radius*2.0/resolution)
-    let angleRadian =System.Math.PI/2.*0.
 
     let rotation (points : VVector list) : VVector list =
         points
@@ -311,55 +249,18 @@ let generateSlicesAndHalfDisksRModified
     let linePoints = 
         srcPositions
         |> Array.map (fun (iso, src) ->
-            generateLineOnBeamAxis iso src offset pointsPerLine (radius*2.0) 
-            |> rotation
+            generateLineOnBeamAxis iso src offset pointsPerLine (radius*2.0) angleRadian
+            //|> rotation
             |> List.toArray)
 
     let diskPoints = 
         ([|Array.head(srcPositions); Array.last(srcPositions)|], [|true;false|])
         ||> Array.map2 (fun (iso, src) fst ->
-            generateHalfDiskWithInteriorR iso src offset radius resolution fst
-            |> rotation
+            generateHalfDiskWithInteriorR iso src offset radius resolution fst angleRadian
+            //|> rotation
             |> List.toArray)
 
     Array.append diskPoints linePoints
     |> Array.concat
     |> Array.toList
 
-
-let generateSlicesAndHalfDisksRNCP
-    (beam : Beam) // Plan beam to sample
-    (arcStep : float) // Step size in degrees for arc sampling; ignored for static beams
-    (offset : float<mm>) // Distance from isocenter along the beam axis for each disk
-    (resolution : float<mm>) // Approximate distance between points
-    (radius : float<mm>) // Radius of the generated disks
-
-    =
-    let beamPositions = 
-        beam
-        |> extractSourcePositions arcStep
-
-    let pointsPerLine = int (radius*2.0/resolution)
-    
-    let angleRadian =
-        beam.ControlPoints[0].PatientSupportAngle/360.*2.*System.Math.PI
-
-    let rotation (points : VVector list) : VVector list =
-        points
-        |> List.map(fun vec -> VVector(vec.x * System.Math.Cos(angleRadian) - vec.z * System.Math.Sin(angleRadian), vec.y, vec.z * System.Math.Cos(angleRadian)+vec.x * System.Math.Sin(angleRadian)))
-
-    let linePoints = 
-        beamPositions
-        |> Array.map (fun (iso, src) ->
-            generateLineOnBeamAxis iso src offset pointsPerLine (radius*2.0) 
-            |> rotation
-            |> List.toArray)
-
-    //add disk points
-    let diskPoints = 
-        ([|Array.head(beamPositions); Array.last(beamPositions)|], [|true;false|])
-        ||> Array.map2 (fun (iso, src) fst ->
-            generateHalfDiskWithInteriorR iso src offset radius resolution fst
-            |> rotation
-            |> List.toArray)
-    Array.append diskPoints linePoints

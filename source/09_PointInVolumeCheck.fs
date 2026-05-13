@@ -60,16 +60,12 @@ let findSliceForZ (slices : AxialSlice[]) (spacing : float) (zPoint : float) =
 /// Uses slice spacing to select the corresponding slab.
 let ispointInside
     (volume : SnapshotVolume)
-    (sliceSpacing : float)
     (point : VVector)
     : bool
     =
-    match findSliceForZ volume.slices sliceSpacing point.z with
+    match findSliceForZ volume.slices volume.sliceThickness point.z with
     | Some slice -> isPointInPolygon2D point.x point.y slice.loop
     | None -> false
-
-
-
 
 
 let hasCollisionWithStructure
@@ -81,8 +77,8 @@ let hasCollisionWithStructure
     let stopWatch = System.Diagnostics.Stopwatch.StartNew()
     let collision =
         diskPoints
-        |> PSeq.filter (isInsideBoundingBoxOfMesh structureMesh)
-        |> Seq.exists (ispointInside volume 1.0)
+        |> Seq.filter (isInsideBoundingBoxOfMesh structureMesh)
+        |> Seq.exists (ispointInside volume)
     // Seq exists is Lazy : if it finds one it does not calculate other
     stopWatch.Stop()
     showMessageBox ("Collsision test took " + stopWatch.Elapsed.TotalMilliseconds.ToString() + " ms")
@@ -99,7 +95,7 @@ let hasCollisionWithStructureParallel
     let collision =
         diskPoints
         |> PSeq.filter (isInsideBoundingBoxOfMesh structureMesh)
-        |> PSeq.exists (ispointInside volume 1.0)
+        |> PSeq.exists (ispointInside volume)
     // Seq exists is Lazy : if it finds one it does not calculate other
     stopWatch.Stop()
     showMessageBox ("Collsision test took " + stopWatch.Elapsed.TotalMilliseconds.ToString() + " ms")
@@ -117,10 +113,10 @@ let checkDiskPointsAgainstStructure
         return!
             match hasCollisionWithStructure volume structureMesh diskPoints with
             | true ->
-                Error "Collision detected. At least one disk point is inside BODY."
+                Error "Collision detected. At least one point is inside BODY."
 
             | false ->
-                Ok "No collision detected. No disk point is inside BODY."
+                Ok "No collision detected. No point is inside BODY."
     }
 
     

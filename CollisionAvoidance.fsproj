@@ -47,7 +47,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="FSharp.Collections.ParallelSeq" Version="1.2.0" />
-    <PackageReference Include="FsToolkit.ErrorHandling" Version="5.0.0" />   
+    <PackageReference Include="FsToolkit.ErrorHandling" Version="5.0.0" />
+    <PackageReference Include="Plotly.NET" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
