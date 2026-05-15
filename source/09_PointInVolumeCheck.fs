@@ -7,14 +7,13 @@ open FsToolkit.ErrorHandling
 open FSharp.Collections.ParallelSeq
 open VMS.TPS.DebugHelpers
 open VMS.TPS.VectorMath
-open StructureSnapshot
+open VMS.TPS.StructureSnapshot
 
 
 
-
+/// Checks if a given point lies inside the bounding box of the mesh
 let isInsideBoundingBoxOfMesh (structureMesh : System.Windows.Media.Media3D.MeshGeometry3D) (point : VVector) : bool =
     structureMesh.Bounds.Contains(point.x, point.y, point.z)
-
 
 
 /// Performs horizontal Ray casting 2D point-in-polygon test.
@@ -67,7 +66,7 @@ let ispointInside
     | Some slice -> isPointInPolygon2D point.x point.y slice.loop
     | None -> false
 
-
+/// Checks if any of the given points lies within a mesh
 let hasCollisionWithStructure
     (volume : SnapshotVolume)
     (structureMesh : System.Windows.Media.Media3D.MeshGeometry3D)
@@ -84,6 +83,8 @@ let hasCollisionWithStructure
     showMessageBox ("Collsision test took " + stopWatch.Elapsed.TotalMilliseconds.ToString() + " ms")
     collision
 
+/// Checks if any of the given points lies within a mesh
+/// WIP parallelized version
 let hasCollisionWithStructureParallel
     (volume : SnapshotVolume)
     (structureMesh : System.Windows.Media.Media3D.MeshGeometry3D)
@@ -100,7 +101,7 @@ let hasCollisionWithStructureParallel
     stopWatch.Stop()
     showMessageBox ("Collsision test took " + stopWatch.Elapsed.TotalMilliseconds.ToString() + " ms")
     collision
-
+   
 
 let checkDiskPointsAgainstStructure
     (volume : SnapshotVolume)

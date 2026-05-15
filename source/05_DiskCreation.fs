@@ -95,7 +95,7 @@ let generateLineOnBeamAxis
     (offset : float<mm>) // Distance from isocenter along axis toward the source (+) or away (−)
     (pointsPerLine : int) // Number of points sampled on each line
     (length : float<mm>) // Length of the line
-    (angle : float)
+    (angle : float) // The patient support angle for the beam
     =
     // Calculate direction from isocenter to source
     let dir =
@@ -122,15 +122,16 @@ let generateLineOnBeamAxis
     linePoints
 
 
-
-let generateHalfDiskOnBeamAxisForRadius
+/// Generates points along the edge of a half circle of a given radius
+/// Rotation based on whether it is the first or last control point
+let generateHalfDiskOnBeamAxis
     (isocenter : VVector) // Center point of the plan/beam in DICOM coords
     (sourcePosition : VVector) // Radiation source position in DICOM coords
     (offset : float<mm>) // Distance from isocenter along axis toward the source (+) or away (−)
     (pointsPerDisk : int) // Number of points sampled on the disk perimeter
     (radius : float<mm>) // Radius of the disk
     (firstDisk : bool) // Statement on wether this is the first disk
-    (angle : float)
+    (angle : float) // The patient support angle for the beam
     : VVector list
     =
     // Calculate direction from isocenter to source
@@ -176,15 +177,16 @@ let generateHalfDiskOnBeamAxisForRadius
 
     perimeterPoints
 
-
-let generateHalfDiskWithInteriorR
+/// Generates points along a halfdisk
+/// Rotation based on whether it is the first or last control point
+let generateHalfDiskWithInterior
     (isocenter : VVector) // Center point of the plan/beam in DICOM coords
     (sourcePosition : VVector) // Radiation source position in DICOM coords
     (offset : float<mm>) // Distance from isocenter along axis toward the source (+) or away (−)
     (radius : float<mm>) // Radius of the outer disk
     (resolution : float<mm>) // Approximate distance between points
     (firstDisk : bool) // Statement on wether this is the first disk
-    (angle : float)
+    (angle : float) // The patient support angle for the beam
     : VVector list
     =
     let radii = List.append [0.0<mm> .. resolution .. radius] [radius]
@@ -194,16 +196,16 @@ let generateHalfDiskWithInteriorR
         
     (radii, pointsPerDisk)
     ||> List.map2(fun r res ->
-        generateHalfDiskOnBeamAxisForRadius isocenter sourcePosition offset res r firstDisk angle)
+        generateHalfDiskOnBeamAxis isocenter sourcePosition offset res r firstDisk angle)
     |> List.concat
 
    
 
-
-
-let generateSlicesAndHalfDisksR
+/// Generating points along the beams trajectory by sampling source/isocenter positions. 
+/// For each step along the beam trajectory the function creates a line otrhogonal to beam axis and trajectory
+/// At the first and last control point a half disk is created
+let generateSlicesAndHalfDisks
     (beam : Beam) // Plan beam to sample
-    //(arcStep : float) // Step size in degrees for arc sampling; ignored for static beams
     (offset : float<mm>) // Distance from isocenter along the beam axis for each disk
     (resolution : float<mm>) // Approximate distance between points
     (radius : float<mm>) // Radius of the generated disks
@@ -228,11 +230,12 @@ let generateSlicesAndHalfDisksR
     let diskPoints = 
         ([|Array.head(beamPositions); Array.last(beamPositions)|], [|true;false|])
         ||> Array.map2 (fun (iso, src) fst ->
-            generateHalfDiskWithInteriorR iso src offset radius resolution fst angleRadian
+            generateHalfDiskWithInterior iso src offset radius resolution fst angleRadian
             |> List.toArray)
     Array.append diskPoints linePoints
+    
 
-
+/// Temporary function for testing point generation outside eclipse
 let generateSlicesAndHalfDisksRModified
     (srcPositions : (VVector*VVector) array)
     (offset : float<mm>) // Distance from isocenter along the beam axis for each disk
@@ -256,7 +259,7 @@ let generateSlicesAndHalfDisksRModified
     let diskPoints = 
         ([|Array.head(srcPositions); Array.last(srcPositions)|], [|true;false|])
         ||> Array.map2 (fun (iso, src) fst ->
-            generateHalfDiskWithInteriorR iso src offset radius resolution fst angleRadian
+            generateHalfDiskWithInterior iso src offset radius resolution fst angleRadian
             //|> rotation
             |> List.toArray)
 
