@@ -30,7 +30,7 @@ open VMS.TPS.VectorMath
 
 
 
-let angle = System.Math.PI/2.*3.
+let angle = System.Math.PI
 let shift = VVector(-200.0, -150.0, -740.0)
 let beampositions = 
     [0.0 .. 0.1 .. Math.PI]
@@ -42,7 +42,7 @@ let iso, src = beampositions[0]
 
 //volume
 let simpleBoxLen = 100.0
-let offsetX = 550.0
+let offsetX = 0.0
 let offsetY = 0.0
 let offsetZ = 0.0
 let boundingBox2D : BoundingBox2D = {
@@ -122,14 +122,14 @@ let diskTrace =
         mode = Mode.Markers,
         Name = "Disk perimeter"
     )
-let boxTrace =
+(*let boxTrace =
     Chart.Scatter3D(
         x = xs combinedoPoints,
         y = ys combinedoPoints,
         z = zs combinedoPoints,
         mode = Mode.Lines,
         Name = "Box perimeter"
-    )
+    )*)
 let centerTrace =
     Chart.Scatter3D(
         x = [ diskCenter.x ],
@@ -147,10 +147,10 @@ let srcTrace =
     Chart.Scatter3D(x = [ src.x ], y = [ src.y ], z = [ src.z ], mode = Mode.Markers, Name = "Source (0,100,0)")
 
 // Combine and style
-[ diskTrace; centerTrace; isoTrace; srcTrace; boxTrace]
+[ diskTrace; centerTrace; isoTrace; srcTrace]//; boxTrace]
 |> Chart.combine
 |> Chart.withTitle "Disk on Beam Axis (radius 390 mm)"
-|> Chart.withSize(1800,1000)
+|> Chart.withSize(1000,1000)
 |> Chart.withScene (
     Scene.init (
         XAxis = LinearAxis.init (Title = Title.init ("X (mm)")),

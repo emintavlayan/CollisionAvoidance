@@ -57,7 +57,7 @@ let findSliceForZ (slices : AxialSlice[]) (spacing : float) (zPoint : float) =
 
 /// Checks whether a point is inside the volume (fail-fast).
 /// Uses slice spacing to select the corresponding slab.
-let ispointInside
+let isPointInside
     (volume : SnapshotVolume)
     (point : VVector)
     : bool
@@ -77,7 +77,7 @@ let hasCollisionWithStructure
     let collision =
         diskPoints
         |> Seq.filter (isInsideBoundingBoxOfMesh structureMesh)
-        |> Seq.exists (ispointInside volume)
+        |> Seq.exists (isPointInside volume)
     // Seq exists is Lazy : if it finds one it does not calculate other
     stopWatch.Stop()
     showMessageBox ("Collsision test took " + stopWatch.Elapsed.TotalMilliseconds.ToString() + " ms")
@@ -96,7 +96,7 @@ let hasCollisionWithStructureParallel
     let collision =
         diskPoints
         |> PSeq.filter (isInsideBoundingBoxOfMesh structureMesh)
-        |> PSeq.exists (ispointInside volume)
+        |> PSeq.exists (isPointInside volume)
     // Seq exists is Lazy : if it finds one it does not calculate other
     stopWatch.Stop()
     showMessageBox ("Collsision test took " + stopWatch.Elapsed.TotalMilliseconds.ToString() + " ms")
