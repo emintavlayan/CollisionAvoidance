@@ -29,6 +29,7 @@
     <Compile Include="source\06_DRRGeneration.fs" />
     <Compile Include="source\07_DrrExporting.fs" />
     <Compile Include="source\08_StructureSnapshot.fs" />
+	<Compile Include="source\BodyMeshSnapshot.fs" />	      
     <Compile Include="source\09_PointInVolumeCheck.fs" />
     <Compile Include="source\10_Workflow.fs" />
     <Compile Include="source\11_Main.fs" />

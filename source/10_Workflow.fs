@@ -8,6 +8,7 @@ open VMS.TPS.DiskCreation
 open VMS.TPS.PointInVolumeCheck
 open VMS.TPS.DebugHelpers
 open VMS.TPS.StructureSnapshot
+open VMS.TPS.BodyMeshSnapshot
 open System.Windows.Media.Media3D
 
 
@@ -75,16 +76,20 @@ let runCollisionCheckWorkflow
             tryFindBodyStructure structureSet
 
         let volume = extractSnapshotVolume structureSet body
-        let bodyMesh = body.MeshGeometry.Clone()
+        
+        let! bodyMesh =
+            body.MeshGeometry
+            |> BodyMeshSnapshot.create
 
         let diskPoints = 
             plan
             |> getTreatmentBeams
-            |> createSliceAndDiskPointsFromBeams 550.0<mm> 5.0<mm> 390.0<mm>
-
+            |> createSliceAndDiskPointsFromBeams 550.0<mm> 1.0<mm> 390.0<mm>
 
 
         showMessageBox (diskPoints.Length.ToString() + " points generated")
         return!
-            checkDiskPointsAgainstStructure volume bodyMesh diskPoints
+            bodyMesh
+            |> BodyMeshSnapshot.value
+            |> checkDiskPointsAgainstStructure volume diskPoints
     } 

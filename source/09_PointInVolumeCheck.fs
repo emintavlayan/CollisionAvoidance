@@ -83,8 +83,8 @@ let hasCollisionWithStructure
     showMessageBox ("Collsision test took " + stopWatch.Elapsed.TotalMilliseconds.ToString() + " ms")
     collision
 
-/// Checks if any of the given points lies within a mesh
-/// WIP parallelized version
+/// Checks if any of the given points lies within a mesh.
+/// parallelized version
 let hasCollisionWithStructureParallel
     (volume : SnapshotVolume)
     (structureMesh : System.Windows.Media.Media3D.MeshGeometry3D)
@@ -102,17 +102,17 @@ let hasCollisionWithStructureParallel
     showMessageBox ("Collsision test took " + stopWatch.Elapsed.TotalMilliseconds.ToString() + " ms")
     collision
    
-
+   
 let checkDiskPointsAgainstStructure
     (volume : SnapshotVolume)
-    (structureMesh : System.Windows.Media.Media3D.MeshGeometry3D)
     (diskPoints : VVector list)
+    (structureMesh : System.Windows.Media.Media3D.MeshGeometry3D)
     : Result<string, string>
     =
   
     result {
         return!
-            match hasCollisionWithStructure volume structureMesh diskPoints with
+            match hasCollisionWithStructureParallel volume structureMesh diskPoints with
             | true ->
                 Error "Collision detected. At least one point is inside BODY."
 
