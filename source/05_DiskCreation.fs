@@ -158,10 +158,10 @@ let generateHalfDiskOnBeamAxis
 
     let halfValue =
         if firstDisk then
-            System.Math.PI*0.5 + angle
+            System.Math.PI*1.5 + angle
         else
-            System.Math.PI*1.5 - angle
-
+            System.Math.PI*0.5 - angle
+            
     let perimeterPoints =
         [ 0 .. pointsPerDisk ]
         |> List.map (fun i ->
@@ -212,9 +212,8 @@ let generateSlicesAndHalfDisks
 
     =
     let arcStep = (180./System.Math.PI)*(resolution/radius)
-    let angleRadian = System.Math.PI/2.*beam.ControlPoints[0].PatientSupportAngle
+    let angleRadian = System.Math.PI/180.*beam.ControlPoints[0].PatientSupportAngle
    
-    
     let beamPositions = 
         beam
         |> extractSourcePositions arcStep

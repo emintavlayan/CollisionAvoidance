@@ -30,10 +30,11 @@ open VMS.TPS.VectorMath
 
 
 
-let angle = System.Math.PI
+let angle = System.Math.PI*0.
 let shift = VVector(-200.0, -150.0, -740.0)
 let beampositions = 
     [0.0 .. 0.1 .. Math.PI]
+    |> List.rev
     |> List.map(fun theta -> (VVector(0.0, 0.0, 0.0), VVector(1000.0*Math.Sin(theta)*System.Double.Cos(angle), 1000.0*Math.Cos(theta), -1000.0*Math.Sin(theta)*System.Double.Sin(angle))))
     |> List.toArray
     |> Array.map(fun (iso, src) -> vadd iso shift, vadd src shift)
