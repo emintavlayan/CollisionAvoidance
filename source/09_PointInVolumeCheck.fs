@@ -109,16 +109,12 @@ let hasCollisionWithStructureParallelFilter
     (diskPoints : VVector list)
     : VVector list
     =
-
-    let stopWatch = System.Diagnostics.Stopwatch.StartNew()
     let collision =
         diskPoints
         |> PSeq.filter (isInsideBoundingBoxOfMesh structureMesh)
         |> PSeq.filter (isPointInside volume)
         |> PSeq.toList
     // Seq exists is Lazy : if it finds one it does not calculate other
-    stopWatch.Stop()
-    showMessageBox ("Collsision test took " + stopWatch.Elapsed.TotalMilliseconds.ToString() + " ms")
     collision
    
    

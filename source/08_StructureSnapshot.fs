@@ -153,3 +153,72 @@ let extractSnapshotVolume
         sliceThickness = sliceThickness
         bounds = bounds
     }
+
+
+
+// hull code lifted from internet to test convex hull 
+let clockwise (p1 : VVector) (p2 : VVector) (p3 : VVector) =
+    (p2.x - p1.x) * (p3.y - p1.y)
+    - (p2.y - p1.y) * (p3.x - p1.x)
+    <= 0.0
+
+let rec chain (hull: VVector list) (candidates: VVector list) =
+    match candidates with
+    | [ ] -> hull
+    | c :: rest ->
+        match hull with
+        | [ ] -> chain [ c ] rest
+        | [ start ] -> chain [c ; start] rest
+        | b :: a :: tail -> 
+            if clockwise a b c then chain (c :: hull) rest else
+            chain (a :: tail) rest
+
+let hull (points: VVector list) =
+    match points with
+    | [ ] -> points
+    | [ _ ] -> points
+    | _ ->
+        let sorted = 
+            points
+            |> List.sortBy(fun p -> p.x)
+        let upper = chain [ ] sorted
+        let lower = chain [ ] (List.rev sorted)
+        List.append (List.tail upper) (List.tail lower)
+
+
+let findHullOfTwoSlices
+    (slice1 : AxialSlice)
+    (slice2 : AxialSlice)
+    : AxialSlice
+    = 
+    let loopHull = 
+        Array.concat [slice1.loop; slice2.loop]
+        |> Array.toList
+        |> hull
+        |> List.toArray
+
+    let boundsHull = computeBoundingBox2D loopHull
+
+    {
+        z = slice1.z
+        loop = loopHull
+        bounds = boundsHull
+    }
+
+let findHullOfTwoVolumes
+    (volume1 : SnapshotVolume)
+    (volume2 : SnapshotVolume)
+    : SnapshotVolume
+    =
+    
+    let slicesHull =
+        (volume1.slices, volume2.slices)
+        ||> Array.map2(fun s1 s2 -> findHullOfTwoSlices s1 s2)
+
+    let boundsHull = computeBoundingBox3D slicesHull
+    
+    {
+        slices = slicesHull
+        sliceThickness = volume1.sliceThickness
+        bounds = boundsHull
+    }

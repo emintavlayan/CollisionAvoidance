@@ -159,7 +159,8 @@ let runCollisionCheckWorkflow
             diskPoints
             |> hasCollisionWithStructureParallelFilter volume test
 
-        plotting filteredPoints test 
+        if not filteredPoints.IsEmpty then
+            plotting filteredPoints test 
 
         showMessageBox (diskPoints.Length.ToString() + " points generated")
         return!
