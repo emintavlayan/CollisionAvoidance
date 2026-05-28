@@ -120,6 +120,8 @@ let plotting (disk : VVector list) (mesh : MeshGeometry3D) =
             AspectMode = AspectMode.Data // equal aspect by data range
         )
     )
+
+    //find proper way to save plot
     |> Chart.saveHtml "//rghrhariafil/Radiofysik/Personlig/Nicklas/test"
     //|> Chart.show
     
@@ -159,8 +161,8 @@ let runCollisionCheckWorkflow
             diskPoints
             |> hasCollisionWithStructureParallelFilter volume test
 
-        if not filteredPoints.IsEmpty then
-            plotting filteredPoints test 
+        (*if not filteredPoints.IsEmpty then
+            plotting filteredPoints test*) 
 
         showMessageBox (diskPoints.Length.ToString() + " points generated")
         return!
