@@ -126,8 +126,10 @@ let extractSnapshotVolume
                     + float zIndex * sliceThickness
 
                 let outer =
-                    contours.[0] // ignore holes (inner contours)
-
+                    [|0 .. contours.Length - 1|]
+                    |> Array.map(fun i -> contours.[i]) // ignore holes (inner contours)
+                    |> Array.concat
+                    
                 let points =
                     outer
                     |> Array.map (fun pt -> VVector(pt.x, pt.y, pt.z))
@@ -171,7 +173,7 @@ let rec chain (hull: VVector list) (candidates: VVector list) =
         | [ start ] -> chain [c ; start] rest
         | b :: a :: tail -> 
             if clockwise a b c then chain (c :: hull) rest else
-            chain (a :: tail) rest
+            chain (a :: tail) candidates
 
 let hull (points: VVector list) =
     match points with
@@ -180,7 +182,7 @@ let hull (points: VVector list) =
     | _ ->
         let sorted = 
             points
-            |> List.sortBy(fun p -> p.x)
+            |> List.sortBy(fun p -> p.x, p.y)
         let upper = chain [ ] sorted
         let lower = chain [ ] (List.rev sorted)
         List.append (List.tail upper) (List.tail lower)
@@ -221,4 +223,31 @@ let findHullOfTwoVolumes
         slices = slicesHull
         sliceThickness = volume1.sliceThickness
         bounds = boundsHull
+    }
+
+let findHullOfSlice
+    (slice : AxialSlice)
+    : AxialSlice
+    = 
+    let loopHull = 
+        slice.loop
+        |> Array.toList
+        |> hull
+        |> List.toArray
+
+    {
+        z = slice.z
+        loop = loopHull
+        bounds = slice.bounds
+    }
+
+let findHullOfVolume (volume : SnapshotVolume) : SnapshotVolume =
+    let slicesHull =
+        volume.slices
+        |> Array.map(findHullOfSlice)
+
+    {
+        slices = slicesHull
+        sliceThickness = volume.sliceThickness
+        bounds = volume.bounds
     }

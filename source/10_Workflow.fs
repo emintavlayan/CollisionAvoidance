@@ -63,7 +63,7 @@ let createSliceAndDiskPointsFromBeams
         |> Array.toList)
 
 
-let plotting (disk : VVector list) (mesh : MeshGeometry3D) =
+let plotting (disk : VVector list) (mesh : MeshGeometry3D) (hull : VVector list)=
     let perimeter = disk |> List.tail
 
     // Helpers to split VVector list into x/y/z arrays
@@ -94,7 +94,7 @@ let plotting (disk : VVector list) (mesh : MeshGeometry3D) =
         [0 .. mesh.TriangleIndices.Count/3 - 1]
         |> List.map(fun i -> mesh.TriangleIndices[i * 3 + 2])
 
-    let mesh3d = Chart.Mesh3D(x = meshx, y = meshy, z = meshz, I = meshi, J = meshj, K = meshk, Opacity = 0.5)
+    let mesh3d = Chart.Mesh3D(x = meshx, y = meshy, z = meshz, I = meshi, J = meshj, K = meshk, Opacity = 1)
     
 
     // Traces: disk perimeter (line), disk center (marker), iso/src points (markers)
@@ -107,8 +107,17 @@ let plotting (disk : VVector list) (mesh : MeshGeometry3D) =
             Name = "Linac points"
         )
 
+    let HullTrace =
+        Chart.Scatter3D(
+            x = xs hull,
+            y = ys hull,
+            z = zs hull,
+            mode = Mode.Lines,
+            Name = "Hull"
+        )
+
     // Combine and style
-    [ diskTrace; mesh3d]
+    [ diskTrace; mesh3d; HullTrace]
     |> Chart.combine
     |> Chart.withTitle "Test"
     |> Chart.withSize(1800,1000)
@@ -142,7 +151,9 @@ let runCollisionCheckWorkflow
         let! body =
             tryFindBodyStructure structureSet
 
-        let volume = extractSnapshotVolume structureSet body
+        let volume = 
+            extractSnapshotVolume structureSet body
+            |>findHullOfVolume
         
         let! bodyMesh =
             body.MeshGeometry
@@ -153,6 +164,7 @@ let runCollisionCheckWorkflow
             |> getTreatmentBeams
             |> createSliceAndDiskPointsFromBeams 550.0<mm> 5.0<mm> 390.0<mm>
 
+        
         //test filtering of points
         let test = 
             bodyMesh
@@ -161,8 +173,15 @@ let runCollisionCheckWorkflow
             diskPoints
             |> hasCollisionWithStructureParallelFilter volume test
 
-        (*if not filteredPoints.IsEmpty then
-            plotting filteredPoints test*) 
+        let test2 = 
+            volume.slices
+            |> Array.map(fun slice -> slice.loop)
+            |> Array.concat
+            |>Array.toList
+
+        
+        if not filteredPoints.IsEmpty then
+            plotting filteredPoints test test2 
 
         showMessageBox (diskPoints.Length.ToString() + " points generated")
         return!
