@@ -158,7 +158,6 @@ let extractSnapshotVolume
 
 
 
-// hull code lifted from internet to test convex hull 
 let clockwise (p1 : VVector) (p2 : VVector) (p3 : VVector) =
     (p2.x - p1.x) * (p3.y - p1.y)
     - (p2.y - p1.y) * (p3.x - p1.x)
@@ -187,6 +186,21 @@ let hull (points: VVector list) =
         let lower = chain [ ] (List.rev sorted)
         List.append (List.tail upper) (List.tail lower)
 
+let findHullOfSlice
+    (slice : AxialSlice)
+    : AxialSlice
+    = 
+    let loopHull = 
+        slice.loop
+        |> Array.toList
+        |> hull
+        |> List.toArray
+
+    {
+        z = slice.z
+        loop = loopHull
+        bounds = slice.bounds
+    }
 
 let findHullOfTwoSlices
     (slice1 : AxialSlice)
@@ -207,40 +221,6 @@ let findHullOfTwoSlices
         bounds = boundsHull
     }
 
-let findHullOfTwoVolumes
-    (volume1 : SnapshotVolume)
-    (volume2 : SnapshotVolume)
-    : SnapshotVolume
-    =
-    
-    let slicesHull =
-        (volume1.slices, volume2.slices)
-        ||> Array.map2(fun s1 s2 -> findHullOfTwoSlices s1 s2)
-
-    let boundsHull = computeBoundingBox3D slicesHull
-    
-    {
-        slices = slicesHull
-        sliceThickness = volume1.sliceThickness
-        bounds = boundsHull
-    }
-
-let findHullOfSlice
-    (slice : AxialSlice)
-    : AxialSlice
-    = 
-    let loopHull = 
-        slice.loop
-        |> Array.toList
-        |> hull
-        |> List.toArray
-
-    {
-        z = slice.z
-        loop = loopHull
-        bounds = slice.bounds
-    }
-
 let findHullOfVolume (volume : SnapshotVolume) : SnapshotVolume =
     let slicesHull =
         volume.slices
@@ -250,4 +230,43 @@ let findHullOfVolume (volume : SnapshotVolume) : SnapshotVolume =
         slices = slicesHull
         sliceThickness = volume.sliceThickness
         bounds = volume.bounds
+    }
+
+let findHullOfTwoVolumes
+    (volume1 : SnapshotVolume)
+    (volume2 : SnapshotVolume)
+    : SnapshotVolume
+    =
+
+    let allZValues =
+        Array.append volume1.slices volume2.slices
+        |> Array.map(fun s -> s.z)
+        |> Array.distinct
+
+    let slicesHull =
+        allZValues
+        |> Array.map(fun z ->
+            let slice1 = 
+                volume1.slices
+                |> Array.tryFind(fun s -> s.z = z)
+
+            let slice2 = 
+                volume2.slices
+                |> Array.tryFind(fun s -> s.z = z)
+
+            //if Array.contains z overlapingZValues then
+            if slice1.IsSome && slice2.IsSome then
+                findHullOfTwoSlices slice1.Value slice2.Value
+            elif slice1.IsSome then
+                findHullOfSlice slice1.Value
+            else
+                findHullOfSlice slice2.Value
+        )
+
+    let boundsHull = computeBoundingBox3D slicesHull
+    
+    {
+        slices = slicesHull
+        sliceThickness = volume1.sliceThickness
+        bounds = boundsHull
     }
