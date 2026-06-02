@@ -33,13 +33,14 @@
     <Compile Include="source\09_PointInVolumeCheck.fs" />
     <Compile Include="source\10_Workflow.fs" />
     <Compile Include="source\11_Main.fs" />
+	<Compile Include="tests\testStructureSnapshot.fs" />
     <COMReference Include="{215d64d2-031c-33c7-96e3-61794cd1ee61}">
       <WrapperTool>tlbimp</WrapperTool>
       <VersionMinor>4</VersionMinor>
       <VersionMajor>2</VersionMajor>
       <Guid>215d64d2-031c-33c7-96e3-61794cd1ee61</Guid>
     </COMReference>
-    <None Include="tests\testDiskCreation.fsx" />
+	<None Include="tests\testDiskCreation.fsx" />
   </ItemGroup>
 
   <ItemGroup>
@@ -49,6 +50,7 @@
     </PackageReference>
     <PackageReference Include="FSharp.Collections.ParallelSeq" Version="1.2.0" />
     <PackageReference Include="FsToolkit.ErrorHandling" Version="5.0.0" />
+    <PackageReference Include="FsUnit.xUnit" Version="7.1.1" />
     <PackageReference Include="Plotly.NET" Version="5.0.0" />
   </ItemGroup>
 
