@@ -9,22 +9,23 @@ open VMS.TPS.PointInVolumeCheck
 open VMS.TPS.DebugHelpers
 open VMS.TPS.StructureSnapshot
 open VMS.TPS.BodyMeshSnapshot
+open VMS.TPS.VacfixInclusion
 open System.Windows.Media.Media3D
 open Plotly.NET
 open Plotly.NET.LayoutObjects
 open Plotly.NET.StyleParam
 
 
-/// Finds the BODY structure in the current structure set
-let tryFindBodyStructure (structureSet : StructureSet) : Result<Structure, string> =
+/// Finds the structure in the current structure set
+let tryFindStructure (structureName : string) (structureSet : StructureSet) : Result<Structure, string> =
     structureSet.Structures
-    |> Seq.tryFind (fun s -> s.Id.ToUpperInvariant() = "BODY")
+    |> Seq.tryFind (fun s -> s.Id.ToUpperInvariant() = structureName)
     |> function
-        | Some body ->
-            Ok body
+        | Some structure ->
+            Ok structure
 
         | None ->
-            Error "BODY structure was not found."
+            Error (structureName + " structure was not found.")
 
 /// Gets all treatment beams from the current plan
 let getTreatmentBeams (plan : PlanSetup) =
@@ -63,7 +64,7 @@ let createSliceAndDiskPointsFromBeams
         |> Array.toList)
 
 
-let plotting (disk : VVector list) (mesh : MeshGeometry3D) (hull : VVector list)=
+let plotting (disk : VVector list) (mesh : MeshGeometry3D) (mesh2 : MeshGeometry3D) (hull : VVector list)=
     let perimeter = disk |> List.tail
 
     // Helpers to split VVector list into x/y/z arrays
@@ -73,30 +74,22 @@ let plotting (disk : VVector list) (mesh : MeshGeometry3D) (hull : VVector list)
 
     let zs (pts: VVector list) = pts |> List.map (fun p -> p.z)
 
-    let meshx = 
-        [0 .. mesh.Positions.Count - 1]
-        |> List.map(fun i -> mesh.Positions[i].X)
-    let meshy = 
-        [0 .. mesh.Positions.Count - 1]
-        |> List.map(fun i -> mesh.Positions[i].Y)
-    let meshz = 
-        [0 .. mesh.Positions.Count - 1]
-        |> List.map(fun i -> mesh.Positions[i].Z)
-
-
-    let meshi = 
-        [0 .. mesh.TriangleIndices.Count/3 - 1]
-        |> List.map(fun i -> mesh.TriangleIndices[i * 3])
-    let meshj = 
-        [0 .. mesh.TriangleIndices.Count/3 - 1]
-        |> List.map(fun i -> mesh.TriangleIndices[i * 3 + 1])
-    let meshk = 
-        [0 .. mesh.TriangleIndices.Count/3 - 1]
-        |> List.map(fun i -> mesh.TriangleIndices[i * 3 + 2])
-
+    let meshx = [0 .. mesh.Positions.Count - 1] |> List.map(fun i -> mesh.Positions[i].X)
+    let meshy = [0 .. mesh.Positions.Count - 1] |> List.map(fun i -> mesh.Positions[i].Y)
+    let meshz = [0 .. mesh.Positions.Count - 1] |> List.map(fun i -> mesh.Positions[i].Z)
+    let meshi = [0 .. mesh.TriangleIndices.Count/3 - 1] |> List.map(fun i -> mesh.TriangleIndices[i * 3])
+    let meshj = [0 .. mesh.TriangleIndices.Count/3 - 1] |> List.map(fun i -> mesh.TriangleIndices[i * 3 + 1])
+    let meshk = [0 .. mesh.TriangleIndices.Count/3 - 1] |> List.map(fun i -> mesh.TriangleIndices[i * 3 + 2])
     let mesh3d = Chart.Mesh3D(x = meshx, y = meshy, z = meshz, I = meshi, J = meshj, K = meshk, Opacity = 1)
     
-
+    let mesh2x = [0 .. mesh2.Positions.Count - 1] |> List.map(fun i -> mesh2.Positions[i].X)
+    let mesh2y = [0 .. mesh2.Positions.Count - 1] |> List.map(fun i -> mesh2.Positions[i].Y)
+    let mesh2z = [0 .. mesh2.Positions.Count - 1] |> List.map(fun i -> mesh2.Positions[i].Z)
+    let mesh2i = [0 .. mesh2.TriangleIndices.Count/3 - 1] |> List.map(fun i -> mesh2.TriangleIndices[i * 3])
+    let mesh2j = [0 .. mesh2.TriangleIndices.Count/3 - 1] |> List.map(fun i -> mesh2.TriangleIndices[i * 3 + 1])
+    let mesh2k = [0 .. mesh2.TriangleIndices.Count/3 - 1] |> List.map(fun i -> mesh2.TriangleIndices[i * 3 + 2])
+    let mesh23d = Chart.Mesh3D(x = mesh2x, y = mesh2y, z = mesh2z, I = mesh2i, J = mesh2j, K = mesh2k, Opacity = 1)
+    
     // Traces: disk perimeter (line), disk center (marker), iso/src points (markers)
     let diskTrace =
         Chart.Scatter3D(
@@ -117,7 +110,7 @@ let plotting (disk : VVector list) (mesh : MeshGeometry3D) (hull : VVector list)
         )
 
     // Combine and style
-    [ diskTrace; mesh3d; HullTrace]
+    [ diskTrace; mesh3d; mesh23d; HullTrace]
     |> Chart.combine
     |> Chart.withTitle "Test"
     |> Chart.withSize(1800,1000)
@@ -149,14 +142,27 @@ let runCollisionCheckWorkflow
             tryGetCurrentStructureSet context
         
         let! body =
-            tryFindBodyStructure structureSet
+            tryFindStructure "BODY" structureSet
 
+        let! couch =
+            tryFindStructure "COUCHSURFACE" structureSet
+
+        let volumeBody = extractSnapshotVolume structureSet body
+        let volumeCouch = extractSnapshotVolume structureSet couch
+        let volumeVacfix = vacfixVolume volumeBody volumeCouch
+        
         let volume = 
-            extractSnapshotVolume structureSet body
-            |>findHullOfVolume
+            volumeBody
+            |>findHullOfTwoVolumes volumeCouch
+            |>findHullOfTwoVolumes volumeVacfix
+            
+        
         
         let! bodyMesh =
             body.MeshGeometry
+            |> BodyMeshSnapshot.create
+        let! couchMesh =
+            couch.MeshGeometry
             |> BodyMeshSnapshot.create
 
         let diskPoints = 
@@ -169,6 +175,10 @@ let runCollisionCheckWorkflow
         let test = 
             bodyMesh
             |> BodyMeshSnapshot.value
+        let testCouch = 
+            couchMesh
+            |> BodyMeshSnapshot.value
+
         let filteredPoints = 
             diskPoints
             |> hasCollisionWithStructureParallelFilter volume test
@@ -181,7 +191,7 @@ let runCollisionCheckWorkflow
 
         
         if not filteredPoints.IsEmpty then
-            plotting filteredPoints test test2 
+            plotting filteredPoints test testCouch test2 
 
         showMessageBox (diskPoints.Length.ToString() + " points generated")
         return!

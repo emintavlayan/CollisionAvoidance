@@ -255,10 +255,11 @@ let findHullOfTwoVolumes
                 |> Array.tryFind(fun s -> s.z = z)
 
             //if Array.contains z overlapingZValues then
-            if slice1.IsSome && slice2.IsSome then
-                findHullOfTwoSlices slice1.Value slice2.Value
-            elif slice1.IsSome then
-                findHullOfSlice slice1.Value
+            if slice1.IsSome then
+                if slice2.IsSome then
+                    findHullOfTwoSlices slice1.Value slice2.Value
+                else
+                    findHullOfSlice slice1.Value
             else
                 findHullOfSlice slice2.Value
         )

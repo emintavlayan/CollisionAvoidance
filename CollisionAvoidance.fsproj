@@ -29,11 +29,12 @@
     <Compile Include="source\06_DRRGeneration.fs" />
     <Compile Include="source\07_DrrExporting.fs" />
     <Compile Include="source\08_StructureSnapshot.fs" />
-	<Compile Include="source\BodyMeshSnapshot.fs" />	      
+	<Compile Include="source\BodyMeshSnapshot.fs" />
+	<Compile Include="source\VacfixInclusion.fs" />
     <Compile Include="source\09_PointInVolumeCheck.fs" />
     <Compile Include="source\10_Workflow.fs" />
     <Compile Include="source\11_Main.fs" />
-	<Compile Include="tests\testStructureSnapshot.fs" />
+	<!-- <Compile Include="tests\testStructureSnapshot.fs" /> -->
     <COMReference Include="{215d64d2-031c-33c7-96e3-61794cd1ee61}">
       <WrapperTool>tlbimp</WrapperTool>
       <VersionMinor>4</VersionMinor>
@@ -50,7 +51,7 @@
     </PackageReference>
     <PackageReference Include="FSharp.Collections.ParallelSeq" Version="1.2.0" />
     <PackageReference Include="FsToolkit.ErrorHandling" Version="5.0.0" />
-    <PackageReference Include="FsUnit.xUnit" Version="7.1.1" />
+    <!-- <PackageReference Include="FsUnit.xUnit" Version="7.1.1" /> -->
     <PackageReference Include="Plotly.NET" Version="5.0.0" />
   </ItemGroup>
 
