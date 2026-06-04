@@ -90,7 +90,7 @@ let listRuns () =
     runs.Values |> Seq.toList
 
 /// Tries to retrieve the detached request and summary payload for one collision run.
-let tryGetRunDetails (runId: Guid) =
+let tryGetRunDetails (runId: Guid) : CollisionRunDetailsDto option =
     tryGetRun runId
     |> Option.map (fun record -> {
         RunId = record.RunId

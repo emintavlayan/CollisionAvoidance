@@ -17,3 +17,7 @@ type ITodosApi = {
     getTodos: unit -> Async<Todo list>
     addTodo: Todo -> Async<Todo list>
 }
+
+type ICollisionRunsApi = {
+    getCollisionRunDetails: Guid -> Async<CollisionRunDetailsDto>
+}

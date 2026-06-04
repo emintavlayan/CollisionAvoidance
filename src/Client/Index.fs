@@ -1,10 +1,16 @@
 module Index
 
+open System
 open Elmish
 open SAFE
 open Shared
 
+type Page =
+    | TodoPage
+    | CollisionPage of CollisionRunPage.Model
+
 type Model = {
+    Page: Page
     Todos: RemoteData<Todo list>
     Input: string
 }
@@ -13,14 +19,40 @@ type Msg =
     | SetInput of string
     | LoadTodos of ApiCall<unit, Todo list>
     | SaveTodo of ApiCall<string, Todo list>
+    | LoadCollisionRun of ApiCall<Guid, Result<CollisionRunDetailsDto, string>>
 
 let todosApi = Api.makeProxy<ITodosApi> ()
+let collisionRunsApi = Api.makeProxy<ICollisionRunsApi> ()
+
+#if FABLE_COMPILER
+let getCurrentPath () = Browser.Dom.window.location.pathname
+#else
+let getCurrentPath () = "/"
+#endif
+
+let initForPath path =
+    match CollisionRunPage.tryParseRunIdFromPath path with
+    | Some runId ->
+        let initialModel =
+            {
+                Page = CollisionPage(CollisionRunPage.init runId)
+                Todos = NotStarted
+                Input = ""
+            }
+
+        initialModel, LoadCollisionRun(Start runId) |> Cmd.ofMsg
+    | None ->
+        let initialModel =
+            {
+                Page = TodoPage
+                Todos = NotStarted
+                Input = ""
+            }
+
+        initialModel, LoadTodos(Start()) |> Cmd.ofMsg
 
 let init () =
-    let initialModel = { Todos = NotStarted; Input = "" }
-    let initialCmd = LoadTodos(Start()) |> Cmd.ofMsg
-
-    initialModel, initialCmd
+    initForPath (getCurrentPath ())
 
 let update msg model =
     match msg with
@@ -46,10 +78,65 @@ let update msg model =
                     Todos = RemoteData.Loaded todos
             },
             Cmd.none
+    | LoadCollisionRun msg ->
+        match model.Page, msg with
+        | CollisionPage collisionPage, Start runId ->
+            let loadCollisionRunCmd =
+                Cmd.OfAsync.either
+                    collisionRunsApi.getCollisionRunDetails
+                    runId
+                    (Ok >> Finished >> LoadCollisionRun)
+                    (fun error -> Error error.Message |> Finished |> LoadCollisionRun)
+
+            {
+                model with
+                    Page =
+                        CollisionPage {
+                            collisionPage with
+                                Details = collisionPage.Details.StartLoading()
+                                ErrorMessage = None
+                        }
+            },
+            loadCollisionRunCmd
+        | CollisionPage collisionPage, Finished result ->
+            match result with
+            | Ok details ->
+                {
+                    model with
+                        Page =
+                            CollisionPage {
+                                collisionPage with
+                                    Details = Loaded details
+                                    ErrorMessage = None
+                            }
+                },
+                Cmd.none
+            | Error errorMessage ->
+                {
+                    model with
+                        Page =
+                            CollisionPage {
+                                collisionPage with
+                                    Details = NotStarted
+                                    ErrorMessage = Some errorMessage
+                            }
+                },
+                Cmd.none
+        | _ ->
+            model, Cmd.none
 
 open Feliz
 
 module ViewComponents =
+    let summaryValue (label: string) (value: string) =
+        Html.div [
+            prop.className "rounded-lg bg-white/20 px-4 py-3 border border-white/30"
+            prop.children [
+                Html.p [ prop.className "text-xs uppercase tracking-wide text-slate-700"; prop.text label ]
+                Html.p [ prop.className "text-lg font-semibold text-slate-900"; prop.text value ]
+            ]
+        ]
+
     let todoAction model dispatch =
         Html.div [
             prop.className "flex flex-col sm:flex-row mt-4 gap-4"
@@ -99,6 +186,46 @@ module ViewComponents =
             ]
         ]
 
+    let collisionRunSummary (pageModel: CollisionRunPage.Model) =
+        match pageModel.Details with
+        | NotStarted ->
+            Html.p [ prop.className "text-slate-800"; prop.text "Run details have not been loaded yet." ]
+        | Loading _ ->
+            Html.p [ prop.className "text-slate-800"; prop.text $"Loading collision run {pageModel.RunId}..." ]
+        | Loaded details ->
+            let summary = CollisionRunPage.createSummaryViewModel details
+
+            Html.div [
+                prop.className "flex flex-col gap-4"
+                prop.children [
+                    Html.div [
+                        prop.className "grid gap-3 sm:grid-cols-2"
+                        prop.children [
+                            summaryValue "Run Id" summary.RunId
+                            summaryValue "Patient Id" summary.PatientId
+                            summaryValue "Plan Id" summary.PlanId
+                            summaryValue "Status" summary.StatusText
+                            summaryValue "Generated Points" (summary.GeneratedPointCount |> Option.defaultValue 0 |> string)
+                            summaryValue "Candidate Points" (summary.CandidatePointCount |> Option.defaultValue 0 |> string)
+                            summaryValue "Inside Points" (summary.InsidePointCount |> Option.defaultValue 0 |> string)
+                        ]
+                    ]
+                    Html.div [
+                        prop.className "rounded-lg bg-white/20 px-4 py-3 border border-white/30"
+                        prop.children [
+                            Html.p [ prop.className "text-xs uppercase tracking-wide text-slate-700"; prop.text "Beams" ]
+                            Html.ul [
+                                prop.className "mt-2 list-disc ml-5 text-slate-900"
+                                prop.children [
+                                    for beamId in summary.BeamIds do
+                                        Html.li [ prop.text beamId ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+
 let view model dispatch =
     Html.section [
         prop.className "h-screen w-screen relative overflow-hidden"
@@ -142,7 +269,14 @@ let view model dispatch =
                                         prop.className "text-center text-3xl sm:text-5xl font-bold mb-3 p-2 sm:p-4"
                                         prop.text "CollisionAvoidance"
                                     ]
-                                    ViewComponents.todoList model dispatch
+                                    match model.Page with
+                                    | TodoPage -> ViewComponents.todoList model dispatch
+                                    | CollisionPage pageModel ->
+                                        ViewComponents.collisionRunSummary pageModel
+                                        match pageModel.ErrorMessage with
+                                        | Some errorMessage ->
+                                            Html.p [ prop.className "mt-4 text-sm text-red-700"; prop.text errorMessage ]
+                                        | None -> Html.none
                                 ]
                             ]
                         ]
