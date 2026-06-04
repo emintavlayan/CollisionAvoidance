@@ -33,6 +33,7 @@ let createPointSource (sampleType: CollisionPointSampleTypeDto) (sample: BeamAxi
     ControlPointIndex = sample.ControlPointIndex
     GantryAngle = sample.GantryAngle
     SampleType = sampleType
+    AccessoryId = None
 }
 
 /// Creates two orthonormal basis vectors that span the plane perpendicular to the beam axis.

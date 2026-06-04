@@ -30,10 +30,10 @@ let createPendingSummary (runId: Guid) (request: CollisionRunRequestDto) = {
 }
 
 /// Creates a detached collision point DTO from one sampled candidate.
-let createCollisionPoint (candidate: CollisionPointCandidate) = {
+let createCollisionPoint description (candidate: CollisionPointCandidate) = {
     Location = candidate.Location
     DistanceMm = None
-    Description = Some "Clearance sample lies inside the BODY contour volume."
+    Description = Some description
     Source = Some candidate.Source
 }
 
@@ -109,14 +109,21 @@ let createFlatResult (request: CollisionRunRequestDto) : Result<FlatCollisionRes
             ElapsedMs = Some stopwatch.Elapsed.TotalMilliseconds
         })
 
-/// Creates the detailed collision result with per-point provenance.
-let createDetailedResult (request: CollisionRunRequestDto) : Result<DetailedCollisionResultDto, string> =
+/// Creates the detailed collision result with per-point provenance and optional candidate-point capture.
+let createDetailedAnalysis (request: CollisionRunRequestDto) : Result<DetailedCollisionResultDto, string> =
     request
     |> generateClearanceSamplePoints
     |> Result.map (fun generatedCandidates ->
         let boundedCandidates = filterCandidatesByBounds request.Body generatedCandidates
         let insideCandidates = filterCandidatesInsideBody request.Body boundedCandidates
-        let collisionPoints = insideCandidates |> List.map createCollisionPoint
+        let candidatePoints =
+            boundedCandidates
+            |> List.map (createCollisionPoint "Generated clearance sample remained within BODY bounds.")
+
+        let collisionPoints =
+            insideCandidates
+            |> List.map (createCollisionPoint "Clearance sample lies inside the BODY contour volume.")
+
         let beamResults = createBeamResults request collisionPoints
         let controlPointResults = beamResults |> List.collect (fun beamResult -> beamResult.ControlPointResults)
 
@@ -124,5 +131,10 @@ let createDetailedResult (request: CollisionRunRequestDto) : Result<DetailedColl
             Status = determineStatus collisionPoints.Length
             BeamResults = beamResults
             ControlPointResults = controlPointResults
+            CandidatePoints = Some candidatePoints
             CollisionPoints = collisionPoints
         })
+
+/// Creates the detailed collision result with per-point provenance.
+let createDetailedResult (request: CollisionRunRequestDto) : Result<DetailedCollisionResultDto, string> =
+    createDetailedAnalysis request

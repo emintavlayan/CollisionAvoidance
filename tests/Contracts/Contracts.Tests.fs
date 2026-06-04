@@ -73,6 +73,7 @@ let ``A sample detailed collision DTO can be constructed`` () =
                 ControlPointIndex = Some 0
                 GantryAngle = Some 180.0
                 SampleType = LineSample
+                AccessoryId = None
             }
     }
 
@@ -89,6 +90,7 @@ let ``A sample detailed collision DTO can be constructed`` () =
                 }
             ]
         ControlPointResults = [ { ControlPointIndex = 0; GantryAngle = Some 180.0; Status = CollisionDetected; CollisionPoints = [ collisionPoint ] } ]
+        CandidatePoints = Some [ collisionPoint ]
         CollisionPoints = [ collisionPoint ]
     }
 

@@ -31,6 +31,7 @@ type CollisionPointSourceDto = {
     ControlPointIndex: int option
     GantryAngle: float option
     SampleType: CollisionPointSampleTypeDto
+    AccessoryId: string option
 }
 
 type CollisionPointDto = {
@@ -66,6 +67,7 @@ type DetailedCollisionResultDto = {
     Status: CollisionStatusDto
     BeamResults: BeamCollisionResultDto list
     ControlPointResults: ControlPointCollisionResultDto list
+    CandidatePoints: CollisionPointDto list option
     CollisionPoints: CollisionPointDto list
 }
 
