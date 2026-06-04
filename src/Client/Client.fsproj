@@ -19,6 +19,7 @@
         <None Include="vite.config.mts" />
     </ItemGroup>
     <ItemGroup>
+        <ProjectReference Include="..\..\src-contracts\CollisionAvoidance.Contracts\CollisionAvoidance.Contracts.fsproj" />
         <ProjectReference Include="..\Shared\Shared.fsproj" />
     </ItemGroup>
     <Import Project="..\..\.paket\Paket.Restore.targets" />
