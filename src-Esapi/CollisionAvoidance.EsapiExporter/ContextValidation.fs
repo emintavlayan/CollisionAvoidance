@@ -1,37 +1,29 @@
 module CollisionAvoidance.EsapiExporter.ContextValidation
 
-/// Validates that a patient is available in the current ESAPI context.
-let validatePatient (patientContext: obj option) =
-    match patientContext with
-    | Some _ -> Ok ()
-    | None -> Error "Patient context was not supplied."
+open FsToolkit.ErrorHandling
 
-/// Validates that a course is available in the current ESAPI context.
-let validateCourse (courseContext: obj option) =
-    match courseContext with
-    | Some _ -> Ok ()
-    | None -> Error "Course context was not supplied."
+/// Validates that a patient value is present and returns it.
+let validatePatient (patientContext: 'patient option) : Result<'patient, string> =
+    patientContext |> Result.requireSome "No patient is currently loaded."
 
-/// Validates that a plan is available in the current ESAPI context.
-let validatePlan (planContext: obj option) =
-    match planContext with
-    | Some _ -> Ok ()
-    | None -> Error "Plan context was not supplied."
+/// Validates that a course value is present and returns it.
+let validateCourse (courseContext: 'course option) : Result<'course, string> =
+    courseContext |> Result.requireSome "No course is currently loaded."
 
-/// Validates that a structure set is available in the current ESAPI context.
-let validateStructureSet (structureSetContext: obj option) =
-    match structureSetContext with
-    | Some _ -> Ok ()
-    | None -> Error "Structure set context was not supplied."
+/// Validates that a plan value is present and returns it.
+let validatePlan (planContext: 'plan option) : Result<'plan, string> =
+    planContext |> Result.requireSome "No plan is currently loaded."
 
-/// Validates that a BODY structure can be resolved for export.
-let validateBody (bodyStructureContext: obj option) =
-    match bodyStructureContext with
-    | Some _ -> Ok ()
-    | None -> Error "BODY structure context was not supplied."
+/// Validates that a structure-set value is present and returns it.
+let validateStructureSet (structureSetContext: 'structureSet option) : Result<'structureSet, string> =
+    structureSetContext |> Result.requireSome "No structure set is currently loaded."
 
-/// Validates that treatment beams are available for extraction.
-let validateTreatmentBeams (treatmentBeamContexts: obj list) =
+/// Validates that a BODY structure value is present and returns it.
+let validateBody (bodyStructureContext: 'body option) : Result<'body, string> =
+    bodyStructureContext |> Result.requireSome "BODY structure was not found."
+
+/// Validates that at least one treatment beam is present and returns the list.
+let validateTreatmentBeams (treatmentBeamContexts: 'beam list) : Result<'beam list, string> =
     match treatmentBeamContexts with
-    | _ :: _ -> Ok ()
     | [] -> Error "No treatment beams were supplied."
+    | beams -> Ok beams

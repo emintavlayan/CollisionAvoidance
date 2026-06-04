@@ -5,6 +5,7 @@
     <TargetFramework>net48</TargetFramework>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
   <ItemGroup>
     <None Include="paket.references" />
@@ -15,6 +16,10 @@
     <Compile Include="SafeServerClient.fs" />
     <Compile Include="ExportWorkflow.fs" />
     <Compile Include="Main.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src-contracts\CollisionAvoidance.Contracts\CollisionAvoidance.Contracts.fsproj" />

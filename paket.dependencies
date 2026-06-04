@@ -1,8 +1,10 @@
 source https://api.nuget.org/v3/index.json
-framework: net8.0
+framework: net8.0, net48
 storage: none
 
 nuget Microsoft.NET.Test.Sdk ~> 17
+nuget FsToolkit.ErrorHandling ~> 4
+nuget FSharp.SystemTextJson ~> 1
 nuget SAFE.Server ~> 5
 nuget SAFE.Client ~> 5
 nuget xunit ~> 2

@@ -1,6 +1,8 @@
 module CollisionAvoidance.EsapiExporter.ExportWorkflow
 
 open System
+open System.IO
+open FsToolkit.ErrorHandling
 open Shared
 open CollisionAvoidance.EsapiExporter.ContextValidation
 open CollisionAvoidance.EsapiExporter.EsapiPlanExtraction
@@ -8,59 +10,86 @@ open CollisionAvoidance.EsapiExporter.PatientIdObfuscation
 open CollisionAvoidance.EsapiExporter.SafeServerClient
 
 type ExportContext = {
-    PatientContext: obj option
-    CourseContext: obj option
-    PlanContext: obj option
-    StructureSetContext: obj option
-    BodyStructureContext: obj option
-    TreatmentBeamContexts: obj list
+    PatientId: string option
+    CourseId: string option
+    PlanContext: EsapiPlanLike option
+    StructureSetId: string option
+    BodyContext: EsapiBodyLike option
+    TreatmentBeamContexts: EsapiBeamLike list
+    SamplingSettings: SamplingSettingsDto
+    Accessories: AccessoryModelDto list
+    OutputDirectory: string option
 }
 
-/// Validates context, extracts detached DTOs, obfuscates the patient id, posts to SAFE, and opens the run page.
-let exportCollisionRun (serverBaseUrl: Uri) (context: ExportContext) : Async<Uri> =
-    match validatePatient context.PatientContext with
-    | Ok () -> ()
-    | Error message -> invalidOp message
+type ExportOutcome = {
+    JsonFilePath: string
+    SubmittedRun: CollisionRunSubmissionResult option
+}
 
-    match validateCourse context.CourseContext with
-    | Ok () -> ()
-    | Error message -> invalidOp message
-
-    match validatePlan context.PlanContext with
-    | Ok () -> ()
-    | Error message -> invalidOp message
-
-    match validateStructureSet context.StructureSetContext with
-    | Ok () -> ()
-    | Error message -> invalidOp message
-
-    match validateBody context.BodyStructureContext with
-    | Ok () -> ()
-    | Error message -> invalidOp message
-
-    match validateTreatmentBeams context.TreatmentBeamContexts with
-    | Ok () -> ()
-    | Error message -> invalidOp message
-
-    let planContext = context.PlanContext |> Option.defaultWith (fun () -> invalidOp "Plan context is required.")
-    let structureSetContext =
-        context.StructureSetContext
-        |> Option.defaultWith (fun () -> invalidOp "Structure set context is required.")
-    let bodyStructureContext =
-        context.BodyStructureContext
-        |> Option.defaultWith (fun () -> invalidOp "BODY structure context is required.")
-
-    let request = extractCollisionRunRequest planContext structureSetContext bodyStructureContext
-    let obfuscatedRequest = {
-        request with
-            Plan = {
-                request.Plan with
-                    PatientId = obfuscatePatientId request.Plan.PatientId
-            }
+/// Creates an ESAPI-like extraction payload from the validated export context.
+let createRunContext (context: ExportContext) (planContext: EsapiPlanLike) (bodyContext: EsapiBodyLike) : EsapiCollisionRunLike =
+    let updatedPlanContext = {
+        planContext with
+            PatientId = context.PatientId |> Option.defaultValue planContext.PatientId
+            CourseId = context.CourseId |> Option.orElse planContext.CourseId
+            StructureSetId = context.StructureSetId |> Option.orElse planContext.StructureSetId
+            Beams = context.TreatmentBeamContexts
     }
 
+    {
+        Plan = updatedPlanContext
+        Body = bodyContext
+        SamplingSettings = context.SamplingSettings
+        Accessories = context.Accessories
+    }
+
+/// Obfuscates the patient id on a detached collision run request before serialization or submission.
+let obfuscateRequestPatientId (request: CollisionRunRequestDto) = {
+    request with
+        Plan = {
+            request.Plan with
+                PatientId = obfuscatePatientId request.Plan.PatientId
+        }
+}
+
+/// Chooses an output directory for local JSON fallback files.
+let resolveOutputDirectory (context: ExportContext) =
+    context.OutputDirectory
+    |> Option.defaultValue (Path.Combine(Path.GetTempPath(), "CollisionAvoidance"))
+
+/// Validates context, writes a local JSON fallback, then attempts SAFE submission and page launch.
+let exportCollisionRun (serverBaseUrl: Uri) (context: ExportContext) : Async<Result<ExportOutcome, string>> =
     async {
-        let! runPageUrl = postCollisionRunRequest serverBaseUrl obfuscatedRequest
-        openCollisionRunPage runPageUrl
-        return runPageUrl
+        let exportResult =
+            result {
+                let! patientId = validatePatient context.PatientId
+                let! _courseId = validateCourse context.CourseId
+                let! planContext = validatePlan context.PlanContext
+                let! _structureSetId = validateStructureSet context.StructureSetId
+                let! bodyContext = validateBody context.BodyContext
+                let! treatmentBeams = validateTreatmentBeams context.TreatmentBeamContexts
+
+                let request =
+                    createRunContext { context with PatientId = Some patientId; TreatmentBeamContexts = treatmentBeams } planContext bodyContext
+                    |> extractCollisionRunRequest
+                    |> Result.map obfuscateRequestPatientId
+
+                let! detachedRequest = request
+                let outputDirectory = resolveOutputDirectory context
+                let! jsonFilePath = writeCollisionRunRequestToJsonFile outputDirectory detachedRequest
+                let! submissionAttempt = postCollisionRunRequest serverBaseUrl detachedRequest |> Async.RunSynchronously |> Ok
+
+                match submissionAttempt with
+                | Ok submission ->
+                    match submission.RunPageUrl with
+                    | Some runPageUrl ->
+                        do! openCollisionRunPage runPageUrl
+                        return { JsonFilePath = jsonFilePath; SubmittedRun = Some submission }
+                    | None ->
+                        return { JsonFilePath = jsonFilePath; SubmittedRun = Some submission }
+                | Error _ ->
+                    return { JsonFilePath = jsonFilePath; SubmittedRun = None }
+            }
+
+        return exportResult
     }
