@@ -9,6 +9,11 @@
         <None Include="tailwind.config.js" />
         <None Include="index.html" />
         <None Include="paket.references" />
+        <Compile Include="CollisionRunPage.fs" />
+        <Compile Include="BeamSelection.fs" />
+        <Compile Include="AccessorySelection.fs" />
+        <Compile Include="ResultSummary.fs" />
+        <Compile Include="GeometryViewer.fs" />
         <Compile Include="Index.fs" />
         <Compile Include="App.fs" />
         <None Include="vite.config.mts" />

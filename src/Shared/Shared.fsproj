@@ -4,6 +4,11 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="GeometryTypes.fs" />
+    <Compile Include="StructureTypes.fs" />
+    <Compile Include="PlanTypes.fs" />
+    <Compile Include="AccessoryTypes.fs" />
+    <Compile Include="CollisionTypes.fs" />
     <Compile Include="Shared.fs" />
     <Content Include="paket.references" />
   </ItemGroup>

@@ -7,6 +7,11 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="paket.references" />
+    <Compile Include="RunStore.fs" />
+    <Compile Include="CollisionSceneBuilder.fs" />
+    <Compile Include="AccessoryModels.fs" />
+    <Compile Include="CollisionAnalysis.fs" />
+    <Compile Include="Api.fs" />
     <Compile Include="Server.fs" />
   </ItemGroup>
   <ItemGroup>

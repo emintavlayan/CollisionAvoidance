@@ -5,14 +5,14 @@ open Saturn
 open Shared
 
 module Storage =
-    let todos =
+    let todos: ResizeArray<Todo> =
         ResizeArray [
             Todo.create "Create new SAFE project"
             Todo.create "Write your app"
             Todo.create "Ship it!!!"
         ]
 
-    let addTodo todo =
+    let addTodo (todo: Todo) : Result<unit, string> =
         if Todo.isValid todo.Description then
             todos.Add todo
             Ok()
@@ -22,7 +22,7 @@ module Storage =
 let todosApi ctx = {
     getTodos = fun () -> async { return Storage.todos |> List.ofSeq }
     addTodo =
-        fun todo -> async {
+        fun (todo: Todo) -> async {
             return
                 match Storage.addTodo todo with
                 | Ok() -> Storage.todos |> List.ofSeq
