@@ -7,6 +7,8 @@ The current SAFE-side collision analysis runs entirely on detached DTOs from `sr
 - BODY is required.
 - Couch surface is optional.
 - The current default run path remains safe when no couch structure is supplied.
+- Volume composition now accepts BODY plus a list of optional detached structures.
+- The first optional structure is expected to be the couch surface when it is present.
 - VacFix, breast board, and couch base remain work in progress.
 
 ## Current algorithm stages
@@ -42,3 +44,4 @@ The current SAFE-side collision analysis runs entirely on detached DTOs from `sr
 - PSeq-based parallel execution
 - final couch base, VacFix, and breast-board volume models
 - clinically complete accessory scene composition beyond BODY and optional couch support
+- production convex-hull merging across BODY and accessory structures
