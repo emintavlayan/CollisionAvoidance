@@ -2,6 +2,7 @@ namespace Shared
 
 type AccessoryKindDto =
     | CouchBase
+    | CouchSurface
     | VacFix
     | BreastBoard
     | Other of string
@@ -11,6 +12,7 @@ type AccessoryModelDto = {
     Kind: AccessoryKindDto
     DisplayName: string
     Mesh: MeshDto option
+    Structure: StructureSnapshotDto option
     Bounds: Bounds3D option
     Offset: Vector3D option
     IsEnabled: bool
