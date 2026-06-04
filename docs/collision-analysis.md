@@ -2,6 +2,13 @@
 
 The current SAFE-side collision analysis runs entirely on detached DTOs from `src-contracts`.
 
+## First runnable scope
+
+- BODY is required.
+- Couch surface is optional.
+- The current default run path remains safe when no couch structure is supplied.
+- VacFix, breast board, and couch base remain work in progress.
+
 ## Current algorithm stages
 
 1. Beam/control-point sampling:
@@ -34,4 +41,4 @@ The current SAFE-side collision analysis runs entirely on detached DTOs from `sr
 - full mesh point-in-mesh checks
 - PSeq-based parallel execution
 - final couch base, VacFix, and breast-board volume models
-- accessory scene composition beyond the current placeholder boundary
+- clinically complete accessory scene composition beyond BODY and optional couch support

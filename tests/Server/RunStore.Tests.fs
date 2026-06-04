@@ -87,28 +87,69 @@ let sampleRequest =
 [<Fact>]
 let ``Creating a run stores the request`` () =
     let response = createRun sampleRequest
-    let storedRun = tryGetRun response.RunId
 
-    match storedRun with
-    | Some runRecord -> Assert.Equal(sampleRequest, runRecord.Request)
-    | None -> failwith "Expected the created collision run to be stored."
+    match response with
+    | Ok createdRun ->
+        let storedRun = tryGetRun createdRun.RunId
+
+        match storedRun with
+        | Some runRecord -> Assert.Equal(sampleRequest, runRecord.Request)
+        | None -> failwith "Expected the created collision run to be stored."
+    | Error error ->
+        failwith error
 
 [<Fact>]
 let ``Creating a run returns a run id`` () =
     let response = createRun sampleRequest
 
-    Assert.NotEqual(System.Guid.Empty, response.RunId)
+    match response with
+    | Ok createdRun ->
+        Assert.NotEqual(System.Guid.Empty, createdRun.RunId)
+    | Error error ->
+        failwith error
 
 [<Fact>]
 let ``A stored run can be retrieved`` () =
     let response = createRun sampleRequest
-    let storedRun = tryGetRun response.RunId
 
-    Assert.True(storedRun.IsSome)
+    match response with
+    | Ok createdRun ->
+        let storedRun = tryGetRun createdRun.RunId
+        Assert.True(storedRun.IsSome)
+    | Error error ->
+        failwith error
 
 [<Fact>]
 let ``Default analysis is executed for a created run`` () =
     let response = createRun sampleRequest
 
-    Assert.True(response.Summary.FlatResult.IsSome)
-    Assert.Equal(CollisionDetected, response.Summary.Status)
+    match response with
+    | Ok createdRun ->
+        Assert.True(createdRun.Summary.FlatResult.IsSome)
+        Assert.Equal(CollisionDetected, createdRun.Summary.Status)
+    | Error error ->
+        failwith error
+
+[<Fact>]
+let ``Creating a run with BODY succeeds`` () =
+    let response = createRun sampleRequest
+
+    Assert.True(Result.isOk response)
+
+[<Fact>]
+let ``Creating a run without BODY fails`` () =
+    let invalidRequest = { sampleRequest with Body = { sampleRequest.Body with StructureId = "" } }
+
+    let response = createRun invalidRequest
+
+    match response with
+    | Ok _ -> failwith "Expected BODY validation to fail."
+    | Error error -> Assert.Equal("Collision run request is missing BODY.", error)
+
+[<Fact>]
+let ``Creating a run without couch succeeds`` () =
+    let requestWithoutCouch = { sampleRequest with Accessories = [] }
+
+    let response = createRun requestWithoutCouch
+
+    Assert.True(Result.isOk response)

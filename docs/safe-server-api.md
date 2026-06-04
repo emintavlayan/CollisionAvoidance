@@ -6,6 +6,8 @@ The SAFE server now exposes a minimal collision-run boundary in addition to the 
 
 - `POST /api/collision-runs`
   - Accepts a detached `CollisionRunRequestDto`
+  - Requires a valid BODY snapshot
+  - Accepts a missing couch surface
   - Creates a `Guid` run id
   - Executes the default flat collision analysis immediately
   - Stores the original request and summary in memory
@@ -30,6 +32,8 @@ The intended ESAPI flow is:
 ## Current constraints
 
 - Storage is in-memory only.
-- The create endpoint runs the flat analysis by default.
+- The create endpoint runs the flat BODY analysis by default.
+- Invalid BODY payloads return `400`.
+- Couch surface is optional in the first runnable version.
 - Detailed analysis is not triggered automatically yet.
 - The todo SAFE sample remains intact so the template app still runs.

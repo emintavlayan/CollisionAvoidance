@@ -12,38 +12,61 @@ type CollisionRunRecord = {
 
 let private runs = ConcurrentDictionary<Guid, CollisionRunRecord>()
 
+/// Checks whether a detached BODY snapshot is present and minimally usable for first-version analysis.
+let validateBodySnapshot (body: BodySnapshotDto) =
+    if String.IsNullOrWhiteSpace body.StructureId then
+        Error "Collision run request is missing BODY."
+    elif not (String.Equals(body.StructureId, "BODY", StringComparison.OrdinalIgnoreCase)) then
+        Error "Collision run request BODY structure must be identified as BODY."
+    elif body.ContourSlices.IsEmpty && body.Mesh.IsNone then
+        Error "Collision run request BODY structure does not contain contour or mesh data."
+    else
+        Ok body
+
+/// Checks whether a detached collision request contains the minimum first-version analysis inputs.
+let validateCollisionRunRequest (request: CollisionRunRequestDto) =
+    match validateBodySnapshot request.Body with
+    | Error error -> Error error
+    | Ok _body ->
+        if request.Plan.Beams.IsEmpty then
+            Error "Collision run request does not contain any beams."
+        else
+            Ok request
+
 /// Creates a collision run, executes the default flat analysis, stores the result, and returns the create response.
 let createRun (request: CollisionRunRequestDto) =
-    let runId = Guid.NewGuid()
-    let pendingSummary = CollisionAnalysis.createPendingSummary runId request
+    validateCollisionRunRequest request
+    |> Result.map (fun validRequest ->
+        let runId = Guid.NewGuid()
+        let pendingSummary = CollisionAnalysis.createPendingSummary runId validRequest
 
-    let completedSummary =
-        match CollisionAnalysis.createFlatResult request with
-        | Ok flatResult ->
-            {
-                pendingSummary with
-                    Status = flatResult.Status
-                    FlatResult = Some flatResult
-            }
-        | Error error ->
-            {
-                pendingSummary with
-                    Status = AnalysisError error
-            }
+        let completedSummary =
+            match CollisionAnalysis.createFlatResult validRequest with
+            | Ok flatResult ->
+                {
+                    pendingSummary with
+                        Status = flatResult.Status
+                        FlatResult = Some flatResult
+                }
+            | Error error ->
+                {
+                    pendingSummary with
+                        Status = AnalysisError error
+                }
 
-    let record = {
-        RunId = runId
-        Request = request
-        Summary = completedSummary
-    }
+        let record = {
+            RunId = runId
+            Request = validRequest
+            Summary = completedSummary
+        }
 
-    runs[runId] <- record
+        runs[runId] <- record
 
-    {
-        RunId = runId
-        RunUrl = Some $"/collision/{runId}"
-        Summary = completedSummary
-    }
+        {
+            RunId = runId
+            RunUrl = Some $"/collision/{runId}"
+            Summary = completedSummary
+        })
 
 /// Tries to retrieve one stored collision run by its identifier.
 let tryGetRun (runId: Guid) =

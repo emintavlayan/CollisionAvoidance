@@ -43,8 +43,11 @@ let createCollisionRunHandler : HttpHandler =
         task {
             try
                 let! request = readJson<CollisionRunRequestDto> ctx
-                let response = RunStore.createRun request
-                return! writeJson StatusCodes.Status201Created response next ctx
+                match RunStore.createRun request with
+                | Ok response ->
+                    return! writeJson StatusCodes.Status201Created response next ctx
+                | Error error ->
+                    return! writeError StatusCodes.Status400BadRequest error next ctx
             with error ->
                 return! writeError StatusCodes.Status400BadRequest error.Message next ctx
         }
