@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="paket.references" />
+    <Compile Include="ContextValidation.fs" />
+    <Compile Include="EsapiGeometryMapping.fs" />
+    <Compile Include="EsapiPlanExtraction.fs" />
+    <Compile Include="PatientIdObfuscation.fs" />
+    <Compile Include="SafeServerClient.fs" />
+    <Compile Include="ExportWorkflow.fs" />
+    <Compile Include="Main.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src-contracts\CollisionAvoidance.Contracts\CollisionAvoidance.Contracts.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>
