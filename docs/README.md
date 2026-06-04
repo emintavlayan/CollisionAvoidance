@@ -3,6 +3,7 @@
 This folder breaks the current application logic into separate documents by layer.
 
 - [Contracts](contracts.md): DTO boundary shared between ESAPI and SAFE
+- [Collision analysis](collision-analysis.md): SAFE-side sampling and point-in-body workflow
 - [ESAPI exporter](esapi-exporter.md): Eclipse-side extraction and submission boundary
 - [Shared domain](shared-domain.md): DTOs and data contracts that move between client and server
 - [Server logic](server-logic.md): how the server currently composes collision-related data and what is still template code

@@ -5,6 +5,8 @@ open System
 type SamplingSettingsDto = {
     BodySampleStepMm: float option
     BeamSampleStepMm: float option
+    BeamAxisOffsetMm: float option
+    ClearanceRadiusMm: float option
     ClearanceDistanceMm: float option
     CollisionToleranceMm: float option
     ArcStepDegrees: float option

@@ -7,6 +7,11 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="paket.references" />
+    <Compile Include="GeometryMath.fs" />
+    <Compile Include="BeamSampling.fs" />
+    <Compile Include="ClearanceSampling.fs" />
+    <Compile Include="BodyVolume.fs" />
+    <Compile Include="AccessoryVolume.fs" />
     <Compile Include="RunStore.fs" />
     <Compile Include="CollisionSceneBuilder.fs" />
     <Compile Include="AccessoryModels.fs" />

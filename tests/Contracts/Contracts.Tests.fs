@@ -112,6 +112,8 @@ let ``A collision run request can contain a body snapshot and beam snapshots`` (
             {
                 BodySampleStepMm = Some 2.5
                 BeamSampleStepMm = Some 5.0
+                BeamAxisOffsetMm = Some 550.0
+                ClearanceRadiusMm = Some 390.0
                 ClearanceDistanceMm = Some 390.0
                 CollisionToleranceMm = Some 1.0
                 ArcStepDegrees = Some 1.0
