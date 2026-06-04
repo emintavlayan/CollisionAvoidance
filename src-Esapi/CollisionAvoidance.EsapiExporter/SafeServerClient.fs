@@ -27,6 +27,23 @@ let createJsonSerializerOptions () =
 let serializeCollisionRunRequest (request: CollisionRunRequestDto) =
     JsonSerializer.Serialize(request, createJsonSerializerOptions ())
 
+/// Deserializes a SAFE create-run response payload from JSON text.
+let deserializeCreateCollisionRunResponse (responseText: string) : Result<CreateCollisionRunResponseDto, string> =
+    try
+        let response = JsonSerializer.Deserialize<CreateCollisionRunResponseDto>(responseText, createJsonSerializerOptions ())
+        Ok response
+    with ex ->
+        Error $"Failed to parse SAFE server response JSON: {ex.Message}"
+
+/// Resolves the SAFE run page URL from a create-run response and server base URL.
+let resolveRunPageUrl (serverBaseUrl: Uri) (response: CreateCollisionRunResponseDto) =
+    match response.RunUrl with
+    | Some runUrl ->
+        match Uri.TryCreate(serverBaseUrl, runUrl) with
+        | true, uri -> Some uri
+        | _ -> None
+    | None -> Some(Uri(serverBaseUrl, $"/collision/{response.RunId}"))
+
 /// Writes a detached collision run request to a local JSON file and returns the path.
 let writeCollisionRunRequestToJsonFile (outputDirectory: string) (request: CollisionRunRequestDto) : Result<string, string> =
     try
@@ -54,20 +71,16 @@ let postCollisionRunRequest (serverBaseUrl: Uri) (request: CollisionRunRequestDt
             let! responseText = response.Content.ReadAsStringAsync() |> Async.AwaitTask
 
             if response.IsSuccessStatusCode then
-                let runPageUrl =
-                    if String.IsNullOrWhiteSpace responseText then
-                        None
-                    else
-                        match Uri.TryCreate(responseText, UriKind.Absolute) with
-                        | true, uri -> Some uri
-                        | _ -> None
-
-                return
-                    Ok {
-                        RunId = None
-                        RunPageUrl = runPageUrl
-                        RawResponse = Some responseText
-                    }
+                match deserializeCreateCollisionRunResponse responseText with
+                | Ok createResponse ->
+                    return
+                        Ok {
+                            RunId = Some createResponse.RunId
+                            RunPageUrl = resolveRunPageUrl serverBaseUrl createResponse
+                            RawResponse = Some responseText
+                        }
+                | Error error ->
+                    return Error error
             else
                 return
                     Error $"SAFE server returned {(int response.StatusCode)}: {responseText}"

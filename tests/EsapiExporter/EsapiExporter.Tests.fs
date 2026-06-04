@@ -4,6 +4,7 @@ open CollisionAvoidance.EsapiExporter.PatientIdObfuscation
 open CollisionAvoidance.EsapiExporter.EsapiGeometryMapping
 open CollisionAvoidance.EsapiExporter.EsapiPlanExtraction
 open CollisionAvoidance.EsapiExporter.ContextValidation
+open CollisionAvoidance.EsapiExporter.ExportWorkflow
 open Shared
 open Xunit
 
@@ -153,3 +154,22 @@ let ``Context validation returns an optional couch surface when present`` () =
         Assert.Equal("CouchSurface", couchSurface.StructureId)
     | Error errors ->
         failwith (String.concat "; " errors)
+
+[<Fact>]
+let ``Detached export request obfuscates the patient id and includes the optional couch surface`` () =
+    let context = createContext [ bodyStructure; couchStructure ]
+
+    let result =
+        context
+        |> validateContext
+        |> Result.mapError (String.concat "; ")
+        |> Result.bind createDetachedCollisionRunRequest
+
+    match result with
+    | Ok request ->
+        Assert.NotEqual<string>("PATIENT-001", request.Plan.PatientId)
+        Assert.Equal("BODY", request.Body.StructureId)
+        Assert.Single(request.Accessories) |> ignore
+        Assert.Equal(CouchSurface, request.Accessories.Head.Kind)
+    | Error error ->
+        failwith error
