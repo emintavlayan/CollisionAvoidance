@@ -1,2 +1,4 @@
-Fable.Mocha
+Microsoft.NET.Test.Sdk
 FSharp.Core
+xunit
+xunit.runner.visualstudio

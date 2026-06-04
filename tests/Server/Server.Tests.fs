@@ -1,24 +1,21 @@
 module Server.Tests
 
-open Expecto
-
 open Shared
 open Server
+open Xunit
 
-let server =
-    testList "Server" [
-        testCase "Adding valid Todo"
-        <| fun _ ->
-            let validTodo = Todo.create "TODO"
-            let expectedResult = Ok()
+[<Fact>]
+let ``Adding a valid todo returns ok and stores the todo`` () =
+    let validTodo = Todo.create "TODO"
+    let initialCount = Storage.todos.Count
 
-            let result = Storage.addTodo validTodo
+    let result = Storage.addTodo validTodo
 
-            Expect.equal result expectedResult "Result should be ok"
-            Expect.contains Storage.todos validTodo "Storage should contain new todo"
-    ]
+    Assert.Equal<Result<unit, string>>(Ok(), result)
+    Assert.Equal(initialCount + 1, Storage.todos.Count)
+    Assert.Contains(validTodo, Storage.todos)
 
-let all = testList "All" [ Shared.Tests.shared; server ]
+    let removed = Storage.todos.Remove validTodo
 
-[<EntryPoint>]
-let main _ = runTestsWithCLIArgs [] [||] all
+    Assert.True(removed)
+    Assert.Equal(initialCount, Storage.todos.Count)

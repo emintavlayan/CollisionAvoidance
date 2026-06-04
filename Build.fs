@@ -11,9 +11,6 @@ let sharedPath = Path.getFullName "src/Shared"
 let serverPath = Path.getFullName "src/Server"
 let clientPath = Path.getFullName "src/Client"
 let deployPath = Path.getFullName "deploy"
-let sharedTestsPath = Path.getFullName "tests/Shared"
-let serverTestsPath = Path.getFullName "tests/Server"
-let clientTestsPath = Path.getFullName "tests/Client"
 
 Target.create "Clean" (fun _ ->
     Shell.cleanDir deployPath
@@ -57,16 +54,17 @@ Target.create "Run" (fun _ ->
     |> runParallel)
 
 Target.create "RunTestsHeadless" (fun _ ->
-    run dotnet [ "run" ] serverTestsPath
-    run npm [ "install" ] clientTestsPath
-    run dotnet [ "fable"; "-o"; "output" ] clientTestsPath
-    run npx [ "mocha"; "output" ] clientTestsPath
+    run
+        dotnet
+        [ "test"; "Application.sln"; "--no-build"; "--logger"; "console;verbosity=normal" ]
+        "."
 )
 
 Target.create "WatchRunTests" (fun _ ->
     [
-        "server", dotnet [ "watch"; "run"; "--no-restore" ] serverTestsPath
-        "client", dotnet [ "fable"; "watch"; "-o"; "output"; "-s"; "--run"; "npx"; "vite" ] clientTestsPath
+        "shared", dotnet [ "watch"; "test"; "tests/Shared/Shared.Tests.fsproj"; "--no-restore" ] "."
+        "server", dotnet [ "watch"; "test"; "tests/Server/Server.Tests.fsproj"; "--no-restore" ] "."
+        "client", dotnet [ "watch"; "test"; "tests/Client/Client.Tests.fsproj"; "--no-restore" ] "."
     ]
     |> runParallel)
 

@@ -1,48 +1,48 @@
-# SAFE Template
+# CollisionAvoidance
 
-This template can be used to generate a full-stack web application using the [SAFE Stack](https://safe-stack.github.io/). It was created using the dotnet [SAFE Template](https://safe-stack.github.io/docs/template-overview/). If you want to learn more about the template why not start with the [quick start](https://safe-stack.github.io/docs/quickstart/) guide?
+CollisionAvoidance is a SAFE-stack F# application that is being shaped into a collision-analysis workflow for treatment plans, body geometry, and enabled accessories.
 
-## Install pre-requisites
+The codebase currently has two layers of logic:
 
-You'll need to install the following pre-requisites in order to build SAFE applications
+- A collision-analysis domain model in `src/Shared` and some server/client helper modules built around that model.
+- The original SAFE template todo flow, which is still the live API and UI path in `src/Server/Server.fs` and `src/Client/Index.fs`.
 
-* [.NET SDK](https://www.microsoft.com/net/download) 8.0 or higher
-* [Node 18](https://nodejs.org/en/download/) or higher
-* [NPM 9](https://www.npmjs.com/package/npm) or higher
+## Repository layout
 
-## Starting the application
+- `src/Shared`: shared DTOs for plans, geometry, accessories, and collision results
+- `src/Server`: server-side composition and collision-analysis scaffolding
+- `src/Client`: Elmish/Feliz client logic and view helpers
+- `tests`: xUnit test projects for shared, server, and client logic
+- `docs`: project documentation split by concern
 
-To concurrently run the server and the client components in watch mode use the following command:
+## Getting started
 
-```bash
-dotnet run
+Prerequisites:
+
+- .NET 8 SDK
+- Node.js 18+ and npm 9+ for the client app
+
+Useful commands:
+
+```powershell
+dotnet run --project Build.fsproj -- Run
+dotnet test Application.sln
+dotnet run --project Build.fsproj -- WatchRunTests
 ```
 
-Then open `http://localhost:8080` in your browser.
+The default SAFE development setup serves:
 
-The build project in root directory contains a couple of different build targets. You can specify them after `--` (target name is case-insensitive).
+- Client: `http://localhost:8080`
+- Server proxy: `http://localhost:5000`
 
-To run concurrently server and client tests in watch mode (you can run this command in parallel to the previous one in new terminal):
+## Documentation
 
-```bash
-dotnet run -- WatchRunTests
-```
+- [Docs index](docs/README.md)
+- [Shared domain](docs/shared-domain.md)
+- [Server logic](docs/server-logic.md)
+- [Client logic](docs/client-logic.md)
+- [Testing](docs/testing.md)
 
-Client tests are available under `http://localhost:8081` in your browser and server tests are running in watch mode in console.
+## Current status
 
-Finally, there are `Bundle` and `Azure` targets that you can use to package your app and deploy to Azure, respectively:
-
-```bash
-dotnet run -- Bundle
-dotnet run -- Azure
-```
-
-## SAFE Stack Documentation
-
-If you want to know more about the full Azure Stack and all of it's components (including Azure) visit the official [SAFE documentation](https://safe-stack.github.io/docs/).
-
-You will find more documentation about the used F# components at the following places:
-
-* [Saturn](https://saturnframework.org/)
-* [Fable](https://fable.io/docs/)
-* [Elmish](https://elmish.github.io/elmish/)
+The collision domain model is already defined, but the end-to-end collision run flow is still a scaffold. The server entry point and the main client page still expose the starter todo example, while the newer collision modules exist as isolated building blocks.
