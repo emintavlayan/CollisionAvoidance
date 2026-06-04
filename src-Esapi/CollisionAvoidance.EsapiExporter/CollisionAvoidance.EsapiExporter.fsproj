@@ -9,9 +9,9 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="paket.references" />
-    <Compile Include="ContextValidation.fs" />
     <Compile Include="EsapiGeometryMapping.fs" />
     <Compile Include="EsapiPlanExtraction.fs" />
+    <Compile Include="ContextValidation.fs" />
     <Compile Include="PatientIdObfuscation.fs" />
     <Compile Include="SafeServerClient.fs" />
     <Compile Include="ExportWorkflow.fs" />

@@ -39,7 +39,7 @@ type EsapiPlanLike = {
     Beams: EsapiBeamLike list
 }
 
-type EsapiBodyLike = {
+type EsapiStructureLike = {
     StructureId: string
     DisplayName: string option
     Mesh: MeshGeometryLike option
@@ -47,9 +47,16 @@ type EsapiBodyLike = {
     SliceThicknessMm: float option
 }
 
+type EsapiBodyLike = EsapiStructureLike
+
+type EsapiStructureSetLike = {
+    StructureSetId: string option
+    Structures: EsapiStructureLike list
+}
+
 type EsapiCollisionRunLike = {
     Plan: EsapiPlanLike
-    Body: EsapiBodyLike
+    Body: EsapiStructureLike
     SamplingSettings: SamplingSettingsDto
     Accessories: AccessoryModelDto list
 }
@@ -113,12 +120,12 @@ let extractPlanSnapshot (planContext: EsapiPlanLike) : PlanSnapshotDto = {
     Beams = planContext.Beams |> List.map extractBeamSnapshot
 }
 
-/// Extracts detached contour slices from the ESAPI body projection.
-let extractContourSlices (bodyContext: EsapiBodyLike) : BodySliceDto list =
-    bodyContext.ContourSlices |> List.map mapBodySlice
+/// Extracts detached contour slices from one ESAPI structure projection.
+let extractContourSlices (structureContext: EsapiStructureLike) : BodySliceDto list =
+    structureContext.ContourSlices |> List.map mapBodySlice
 
 /// Extracts a detached body snapshot from the ESAPI BODY projection.
-let extractBodySnapshot (bodyContext: EsapiBodyLike) : Result<BodySnapshotDto, string> =
+let extractBodySnapshot (bodyContext: EsapiStructureLike) : Result<BodySnapshotDto, string> =
     result {
         let! mesh =
             match bodyContext.Mesh with
@@ -142,6 +149,45 @@ let extractBodySnapshot (bodyContext: EsapiBodyLike) : Result<BodySnapshotDto, s
             SliceThicknessMm = bodyContext.SliceThicknessMm
         }
     }
+
+/// Extracts a detached structure snapshot from one ESAPI structure projection.
+let extractStructureSnapshot (structureContext: EsapiStructureLike) : Result<StructureSnapshotDto, string> =
+    result {
+        let! mesh =
+            match structureContext.Mesh with
+            | Some meshGeometry ->
+                meshGeometry
+                |> createDetachedMeshSnapshot
+                |> Result.bind (fun snapshot -> snapshot |> getDetachedMeshValue |> mapMeshToMeshDto |> Result.map Some)
+            | None -> Ok None
+
+        let bounds =
+            structureContext.Mesh
+            |> Option.bind (fun meshGeometry -> meshGeometry.Bounds)
+            |> Option.map mapMeshBoundsToBounds3D
+
+        return {
+            StructureId = structureContext.StructureId
+            DisplayName = structureContext.DisplayName
+            Mesh = mesh
+            ContourSlices = structureContext.ContourSlices |> List.map mapContourSlice
+            Bounds = bounds
+        }
+    }
+
+/// Extracts a detached accessory model from one ESAPI structure projection.
+let extractAccessoryModel (kind: AccessoryKindDto) (structureContext: EsapiStructureLike) : Result<AccessoryModelDto, string> =
+    extractStructureSnapshot structureContext
+    |> Result.map (fun structure -> {
+        AccessoryId = structure.StructureId
+        Kind = kind
+        DisplayName = structure.DisplayName |> Option.defaultValue structure.StructureId
+        Mesh = structure.Mesh
+        Structure = Some structure
+        Bounds = structure.Bounds
+        Offset = None
+        IsEnabled = true
+    })
 
 /// Extracts the full detached collision run request from ESAPI-like plan and body projections.
 let extractCollisionRunRequest (runContext: EsapiCollisionRunLike) : Result<CollisionRunRequestDto, string> =

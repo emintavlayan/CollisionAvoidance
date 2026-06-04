@@ -2,12 +2,13 @@ module CollisionAvoidance.EsapiExporter.Main
 
 open System.Windows.Forms
 open Shared
+open CollisionAvoidance.EsapiExporter.ContextValidation
 open CollisionAvoidance.EsapiExporter.EsapiPlanExtraction
 open CollisionAvoidance.EsapiExporter.ExportWorkflow
 open CollisionAvoidance.EsapiExporter.SafeServerClient
 
 /// Creates a compile-safe placeholder export context until real ESAPI adapters are wired in.
-let createPlaceholderContext () =
+let createPlaceholderContext () : ExportContext =
     {
         PatientId = Some "placeholder-patient"
         CourseId = Some "placeholder-course"
@@ -20,27 +21,21 @@ let createPlaceholderContext () =
                 PlanName = Some "Placeholder plan"
                 Beams = []
             }
-        StructureSetId = Some "placeholder-structure-set"
-        BodyContext =
+        StructureSetContext =
             Some {
-                StructureId = "BODY"
-                DisplayName = Some "External"
-                Mesh = None
-                ContourSlices = []
-                SliceThicknessMm = None
+                StructureSetId = Some "placeholder-structure-set"
+                Structures =
+                    [
+                        {
+                            StructureId = "BODY"
+                            DisplayName = Some "External"
+                            Mesh = None
+                            ContourSlices = []
+                            SliceThicknessMm = None
+                        }
+                    ]
             }
-        TreatmentBeamContexts = []
-        SamplingSettings =
-            {
-                BodySampleStepMm = Some 2.5
-                BeamSampleStepMm = Some 5.0
-                BeamAxisOffsetMm = Some 550.0
-                ClearanceRadiusMm = Some 390.0
-                ClearanceDistanceMm = Some 390.0
-                CollisionToleranceMm = Some 1.0
-                ArcStepDegrees = Some 1.0
-            }
-        Accessories = []
+        SamplingSettings = Some defaultSamplingSettings
         OutputDirectory = None
     }
 
