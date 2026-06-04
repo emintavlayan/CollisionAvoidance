@@ -84,3 +84,15 @@ type CollisionRunSummaryDto = {
     DetailedResult: DetailedCollisionResultDto option
     BeamResults: BeamCollisionResultDto list
 }
+
+type CreateCollisionRunResponseDto = {
+    RunId: Guid
+    RunUrl: string option
+    Summary: CollisionRunSummaryDto
+}
+
+type CollisionRunDetailsDto = {
+    RunId: Guid
+    Request: CollisionRunRequestDto
+    Summary: CollisionRunSummaryDto
+}

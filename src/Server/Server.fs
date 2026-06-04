@@ -3,6 +3,7 @@ module Server
 open SAFE
 open Saturn
 open Shared
+open Giraffe
 
 module Storage =
     let todos: ResizeArray<Todo> =
@@ -30,7 +31,19 @@ let todosApi ctx = {
         }
 }
 
-let webApp = Api.make todosApi
+let todoWebApp = Api.make todosApi
+
+let collisionRouter = router {
+    post "/api/collision-runs" CollisionApi.createCollisionRunHandler
+    getf "/api/collision-runs/%O/summary" CollisionApi.getCollisionRunSummaryHandler
+    getf "/api/collision-runs/%O" CollisionApi.getCollisionRunDetailsHandler
+}
+
+let webApp =
+    choose [
+        collisionRouter
+        todoWebApp
+    ]
 
 let app = application {
     use_router webApp

@@ -9,6 +9,7 @@
   <ItemGroup>
     <None Include="paket.references" />
     <Compile Include="CollisionAnalysis.Tests.fs" />
+    <Compile Include="RunStore.Tests.fs" />
     <Compile Include="Server.Tests.fs" />
   </ItemGroup>
   <ItemGroup>
