@@ -8,7 +8,7 @@ open VMS.TPS.StructureSnapshot
 
 
 //find couch maxy and body niny for a volume
-let distanceBCBB
+let gapBCBB
     (body : SnapshotVolume) 
     (couch : SnapshotVolume) 
     : float 
@@ -17,17 +17,17 @@ let distanceBCBB
 
 
 //find couch maxy and body miny distance for a slice
-let distanceBCSlice
+let gapBCSlice
     (bodySlice : AxialSlice)
     (couchSlice : AxialSlice)
     : float
     =
     abs (bodySlice.bounds.maxY - couchSlice.bounds.minY)
 
-let didistanceBCVolume
+let gapBCVolume
     (body : SnapshotVolume) 
     (couch : SnapshotVolume) 
-    : (float*float) array
+    : (int*float*float) array
     =
     let zOverlapping =
         body.slices
@@ -35,16 +35,19 @@ let didistanceBCVolume
         |> Array.filter (fun z -> 
             Array.contains z (couch.slices |> Array.map(fun p -> p.z)))
         
-    let distance =
+    let gap =
         zOverlapping
         |> Array.map(fun z ->
             Array.find (fun slice -> slice.z = z ) body.slices,
             Array.find (fun slice -> slice.z = z ) couch.slices)
         |> Array.map(fun (b, c) -> abs( b.bounds.maxY - c.bounds.minY))
-         
 
-    Array.zip distance zOverlapping
-    
+    let numbering = [|0 .. gap.Length - 1|]
+
+    Array.zip zOverlapping gap
+    |> Array.sortBy(fun (z, gap) -> z)
+    |> Array.unzip
+    ||> Array.zip3 numbering
 
 //add an axialslice for vacfix
 let vacfixSlice 
@@ -52,7 +55,7 @@ let vacfixSlice
     (couchSlice : AxialSlice)
     : AxialSlice
     =
-    let gap = distanceBCSlice bodySlice couchSlice
+    let gap = gapBCSlice bodySlice couchSlice
     let extraHeigth = 80.
     
     let h = gap + extraHeigth

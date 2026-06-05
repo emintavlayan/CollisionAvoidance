@@ -14,6 +14,8 @@ open System.Windows.Media.Media3D
 open Plotly.NET
 open Plotly.NET.LayoutObjects
 open Plotly.NET.StyleParam
+open System.Linq
+open FSharp.Data
 
 
 /// Finds the structure in the current structure set
@@ -26,6 +28,15 @@ let tryFindStructure (structureName : string) (structureSet : StructureSet) : Re
 
         | None ->
             Error (structureName + " structure was not found.")
+
+/// Temporary function for findBodyStructures
+let tryFindStructure2 (structureName : string) (structureSet : StructureSet) : Structure option =
+    let structure =
+        structureSet.Structures
+        |> Seq.tryFind (fun s -> s.Id.ToUpperInvariant() = structureName)
+    if structure.IsNone then showMessageBox (structureName + " structure was not found.")
+    structure
+            
 
 /// Gets all treatment beams from the current plan
 let getTreatmentBeams (plan : PlanSetup) =
@@ -126,7 +137,54 @@ let plotting (disk : VVector list) (mesh : MeshGeometry3D) (mesh2 : MeshGeometry
     //find proper way to save plot
     |> Chart.saveHtml "//rghrhariafil/Radiofysik/Personlig/Nicklas/test"
     //|> Chart.show
+
+
+
+
+// WIP:
+//errors in tryFindStructure replaced with just a warning
+//if all are none return error
+let findBodyStructures
+    (structureSet : StructureSet)
+    (includeVacfix : bool)
+    (structureNames : string[] )
+    : Map<string,SnapshotVolume>
+    =
+    structureNames 
+    |> Array.map(fun name -> tryFindStructure2 name structureSet)
+    |> Array.zip structureNames 
+    |> Array.filter(fun (name, structure) -> structure.IsSome)
+    |> Array.map(fun (name, structure) -> (name, extractSnapshotVolume structureSet structure.Value))
+    |> Map.ofArray
+    |> fun volumeMap ->
+        if includeVacfix && volumeMap.ContainsKey "BODY"  && volumeMap.ContainsKey "COUCHSURFACE" then
+            let volumeVacfix = 
+                vacfixVolume 
+                    volumeMap.["BODY"]
+                    volumeMap.["COUCHSURFACE"]
+
+            volumeMap.Add ("VACFIX", volumeVacfix)
+        else
+            volumeMap
+   
+
+let makeConvexHullOfVolumes
+    (volumeMap : Map<string,SnapshotVolume>)
+    : SnapshotVolume
+    =   
+    volumeMap.Values.ToArray()
+    |> fun volumes ->
+        if volumeMap.Count > 1 then
+            volumes
+            |> Array.reduce (fun (hull : SnapshotVolume) vol -> findHullOfTwoVolumes hull vol)
+        else 
+            volumes
+            |> Array.head 
+            |> findHullOfVolume 
+
     
+    
+
 
 /// Runs the current collision check workflow
 let runCollisionCheckWorkflow
@@ -147,17 +205,12 @@ let runCollisionCheckWorkflow
         let! couch =
             tryFindStructure "COUCHSURFACE" structureSet
 
-        let volumeBody = extractSnapshotVolume structureSet body
-        let volumeCouch = extractSnapshotVolume structureSet couch
-        let volumeVacfix = vacfixVolume volumeBody volumeCouch
-        
-        let volume = 
-            volumeBody
-            |>findHullOfTwoVolumes volumeCouch
-            |>findHullOfTwoVolumes volumeVacfix
+
+        let mapOfVolumes = findBodyStructures structureSet true [|"BODY"; "COUCHSURFACE"|]
+        let volume = makeConvexHullOfVolumes mapOfVolumes 
             
         
-        
+
         let! bodyMesh =
             body.MeshGeometry
             |> BodyMeshSnapshot.create
@@ -179,19 +232,33 @@ let runCollisionCheckWorkflow
             couchMesh
             |> BodyMeshSnapshot.value
 
+        let stopWatch = System.Diagnostics.Stopwatch.StartNew()
         let filteredPoints = 
             diskPoints
             |> hasCollisionWithStructureParallelFilter volume test
+        stopWatch.Stop()
 
-        let test2 = 
+        showMessageBox ("All test took " + stopWatch.Elapsed.TotalMilliseconds.ToString() + " ms. for " + diskPoints.Length.ToString() + " points.")
+        showMessageBox("Calculates" + (int((float diskPoints.Length)/stopWatch.Elapsed.TotalMilliseconds)).ToString() + "points pr second")
+
+        let gaps = gapBCVolume mapOfVolumes.["BODY"] mapOfVolumes.["COUCHSURFACE"]
+        
+
+        let ConvexHullLoops = 
             volume.slices
+            |> Array.map(fun slice -> slice.loop)
+            |> Array.concat
+            |>Array.toList
+
+        let VacfixLoop = 
+            mapOfVolumes.["VACFIX"].slices
             |> Array.map(fun slice -> slice.loop)
             |> Array.concat
             |>Array.toList
 
         
         if not filteredPoints.IsEmpty then
-            plotting filteredPoints test testCouch test2 
+            plotting filteredPoints test testCouch ConvexHullLoops
 
         showMessageBox (diskPoints.Length.ToString() + " points generated")
         return!
