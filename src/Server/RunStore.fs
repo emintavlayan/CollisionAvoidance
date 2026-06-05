@@ -18,8 +18,8 @@ let validateBodySnapshot (body: BodySnapshotDto) =
         Error "Collision run request is missing BODY."
     elif not (String.Equals(body.StructureId, "BODY", StringComparison.OrdinalIgnoreCase)) then
         Error "Collision run request BODY structure must be identified as BODY."
-    elif body.ContourSlices.IsEmpty && body.Mesh.IsNone then
-        Error "Collision run request BODY structure does not contain contour or mesh data."
+    elif body.ContourSlices.IsEmpty then
+        Error "Collision run request BODY structure must include contour slices for first-version analysis."
     else
         Ok body
 

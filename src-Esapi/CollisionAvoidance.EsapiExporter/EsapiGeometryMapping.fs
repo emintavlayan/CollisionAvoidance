@@ -41,6 +41,59 @@ type DetachedMeshSnapshot =
             Mesh: MeshGeometryLike
         }
 
+/// Computes 2D bounds from a detached point list when points are available.
+let tryCreateBounds2D (points: Point3D list) : Bounds2D option =
+    match points with
+    | [] -> None
+    | _ ->
+        let xs = points |> List.map (fun point -> point.X)
+        let ys = points |> List.map (fun point -> point.Y)
+
+        Some {
+            Min = { X = List.min xs; Y = List.min ys }
+            Max = { X = List.max xs; Y = List.max ys }
+        }
+
+/// Combines many 2D bounds values into one detached 2D bounds record.
+let tryCombineBounds2D (boundsValues: Bounds2D list) : Bounds2D option =
+    match boundsValues with
+    | [] -> None
+    | _ ->
+        Some {
+            Min = {
+                X = boundsValues |> List.map (fun bounds -> bounds.Min.X) |> List.min
+                Y = boundsValues |> List.map (fun bounds -> bounds.Min.Y) |> List.min
+            }
+            Max = {
+                X = boundsValues |> List.map (fun bounds -> bounds.Max.X) |> List.max
+                Y = boundsValues |> List.map (fun bounds -> bounds.Max.Y) |> List.max
+            }
+        }
+
+/// Computes detached 3D bounds from BODY or structure contour slices when slices are available.
+let tryCreateBounds3DFromSlices (slices: BodySliceDto list) : Bounds3D option =
+    let sliceBounds =
+        slices
+        |> List.choose (fun slice ->
+            slice.Bounds
+            |> Option.map (fun bounds -> bounds, slice.Z))
+
+    match sliceBounds with
+    | [] -> None
+    | _ ->
+        Some {
+            Min = {
+                X = sliceBounds |> List.map (fun (bounds, _) -> bounds.Min.X) |> List.min
+                Y = sliceBounds |> List.map (fun (bounds, _) -> bounds.Min.Y) |> List.min
+                Z = sliceBounds |> List.map snd |> List.min
+            }
+            Max = {
+                X = sliceBounds |> List.map (fun (bounds, _) -> bounds.Max.X) |> List.max
+                Y = sliceBounds |> List.map (fun (bounds, _) -> bounds.Max.Y) |> List.max
+                Z = sliceBounds |> List.map snd |> List.max
+            }
+        }
+
 /// Maps an ESAPI VVector-like value into a detached Point3D contract.
 let mapVVectorToPoint3D (vector: VectorLike) : Point3D = {
     X = vector.X
@@ -59,22 +112,9 @@ let mapContourPointToPoint3D (point: ContourPointLike) : Point3D = {
 let mapContourToContourDto (points: ContourPointLike list) : ContourDto =
     let mappedPoints = points |> List.map mapContourPointToPoint3D
 
-    let bounds : Bounds2D option =
-        match mappedPoints with
-        | [] -> None
-        | head :: tail ->
-            let allPoints = head :: tail
-            let xs = allPoints |> List.map (fun point -> point.X)
-            let ys = allPoints |> List.map (fun point -> point.Y)
-
-            Some ({
-                Min = ({ X = List.min xs; Y = List.min ys }: Point2D)
-                Max = ({ X = List.max xs; Y = List.max ys }: Point2D)
-            }: Bounds2D)
-
     {
         Points = mappedPoints
-        Bounds = bounds
+        Bounds = tryCreateBounds2D mappedPoints
     }
 
 /// Maps ESAPI mesh bounds into a detached Bounds3D contract.
@@ -90,7 +130,14 @@ let mapMeshBoundsToBounds3D (meshBounds: Rect3DLike) : Bounds3D = {
 /// Creates a detached mesh snapshot mirroring the prototype clone-and-freeze boundary.
 let createDetachedMeshSnapshot (meshGeometry: MeshGeometryLike) : Result<DetachedMeshSnapshot, string> =
     if meshGeometry.CanFreeze then
-        Ok { Mesh = meshGeometry }
+        let clonedMesh = {
+            Vertices = meshGeometry.Vertices |> List.map id
+            TriangleIndices = meshGeometry.TriangleIndices |> List.map id
+            Bounds = meshGeometry.Bounds
+            CanFreeze = meshGeometry.CanFreeze
+        }
+
+        Ok { Mesh = clonedMesh }
     else
         Error "Body mesh clone could not be frozen."
 
@@ -120,26 +167,10 @@ let mapMeshToMeshDto (meshGeometry: MeshGeometryLike) : Result<MeshDto, string> 
 let mapContourSlice (slice: ContourSliceLike) : ContourSliceDto =
     let contours = slice.Contours |> List.map mapContourToContourDto
 
-    let bounds : Bounds2D option =
-        contours
-        |> List.choose (fun contour -> contour.Bounds)
-        |> function
-            | [] -> None
-            | contourBounds ->
-                let minXs = contourBounds |> List.map (fun bounds -> bounds.Min.X)
-                let minYs = contourBounds |> List.map (fun bounds -> bounds.Min.Y)
-                let maxXs = contourBounds |> List.map (fun bounds -> bounds.Max.X)
-                let maxYs = contourBounds |> List.map (fun bounds -> bounds.Max.Y)
-
-                Some ({
-                    Min = ({ X = List.min minXs; Y = List.min minYs }: Point2D)
-                    Max = ({ X = List.max maxXs; Y = List.max maxYs }: Point2D)
-                }: Bounds2D)
-
     {
         Z = slice.Z
         Contours = contours
-        Bounds = bounds
+        Bounds = contours |> List.choose (fun contour -> contour.Bounds) |> tryCombineBounds2D
     }
 
 /// Maps one ESAPI contour slice into a detached BODY slice DTO contract.

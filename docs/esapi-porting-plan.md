@@ -14,6 +14,19 @@
 - patient id obfuscation
 - HTTP POST to SAFE server
 
+## Ported From First-branch
+
+- validation
+- BODY lookup
+- optional couch lookup
+- BODY contour extraction
+- mesh clone/freeze
+- beam/control-point extraction
+- source-position extraction
+- request creation
+- JSON fallback
+- SAFE submission
+
 ## Collision logic to port later into SAFE server
 
 - flat disk point creation

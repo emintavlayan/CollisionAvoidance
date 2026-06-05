@@ -14,6 +14,25 @@ let contourAt z =
         Bounds = Some { Min = point2D 0.0 0.0; Max = point2D 10.0 10.0 }
     }
 
+let sampleMesh =
+    {
+        Vertices = [ point3D 0.0 0.0 0.0; point3D 1.0 0.0 0.0; point3D 0.0 1.0 0.0 ]
+        Triangles = [ { A = 0; B = 1; C = 2 } ]
+        Bounds = Some { Min = point3D 0.0 0.0 0.0; Max = point3D 1.0 1.0 0.0 }
+    }
+
+let couchSurfaceAccessory =
+    {
+        AccessoryId = "CouchSurface"
+        Kind = CouchSurface
+        DisplayName = "Couch Surface"
+        Mesh = None
+        Structure = None
+        Bounds = Some { Min = point3D -5.0 -5.0 -1.0; Max = point3D 15.0 15.0 1.0 }
+        Offset = None
+        IsEnabled = true
+    }
+
 let sampleRequest =
     {
         Plan =
@@ -151,5 +170,34 @@ let ``Creating a run without couch succeeds`` () =
     let requestWithoutCouch = { sampleRequest with Accessories = [] }
 
     let response = createRun requestWithoutCouch
+
+    Assert.True(Result.isOk response)
+
+[<Fact>]
+let ``Creating a run with BODY contour slices is accepted`` () =
+    let response = createRun sampleRequest
+
+    Assert.True(Result.isOk response)
+
+[<Fact>]
+let ``Creating a run with a mesh-only BODY is rejected for first-version analysis`` () =
+    let meshOnlyBody =
+        {
+            sampleRequest.Body with
+                Mesh = Some sampleMesh
+                ContourSlices = []
+                Bounds = sampleMesh.Bounds
+        }
+
+    let response = createRun { sampleRequest with Body = meshOnlyBody }
+
+    match response with
+    | Ok _ -> failwith "Expected mesh-only BODY validation to fail."
+    | Error error ->
+        Assert.Equal("Collision run request BODY structure must include contour slices for first-version analysis.", error)
+
+[<Fact>]
+let ``Creating a run can include an optional couch surface without requiring it`` () =
+    let response = createRun { sampleRequest with Accessories = [ couchSurfaceAccessory ] }
 
     Assert.True(Result.isOk response)

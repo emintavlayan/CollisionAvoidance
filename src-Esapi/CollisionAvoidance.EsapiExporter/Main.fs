@@ -19,7 +19,35 @@ let createPlaceholderContext () : ExportContext =
                 StructureSetId = Some "placeholder-structure-set"
                 PlanId = "placeholder-plan"
                 PlanName = Some "Placeholder plan"
-                Beams = []
+                Beams =
+                    [
+                        {
+                            BeamId = "placeholder-beam"
+                            BeamName = Some "Placeholder beam"
+                            IsSetupField = false
+                            GantryDirection = NotSpecified
+                            GantryStart = Some 0.0
+                            GantryStop = Some 0.0
+                            CouchAngle = Some 0.0
+                            PatientSupportAngle = Some 0.0
+                            CollimatorAngle = Some 0.0
+                            Isocenter = Some { X = 0.0; Y = 0.0; Z = 0.0 }
+                            SourcePosition = Some { X = 0.0; Y = 1000.0; Z = 0.0 }
+                            ControlPoints =
+                                [
+                                    {
+                                        Index = 0
+                                        GantryAngle = 0.0
+                                        CouchAngle = Some 0.0
+                                        PatientSupportAngle = Some 0.0
+                                        CollimatorAngle = Some 0.0
+                                        SourcePosition = Some { X = 0.0; Y = 1000.0; Z = 0.0 }
+                                        Isocenter = Some { X = 0.0; Y = 0.0; Z = 0.0 }
+                                        MetersetWeight = Some 0.0
+                                    }
+                                ]
+                        }
+                    ]
             }
         StructureSetContext =
             Some {
@@ -30,8 +58,22 @@ let createPlaceholderContext () : ExportContext =
                             StructureId = "BODY"
                             DisplayName = Some "External"
                             Mesh = None
-                            ContourSlices = []
-                            SliceThicknessMm = None
+                            ContourSlices =
+                                [
+                                    {
+                                        Z = 0.0
+                                        Contours =
+                                            [
+                                                [
+                                                    { X = -50.0; Y = -50.0; Z = 0.0 }
+                                                    { X = 50.0; Y = -50.0; Z = 0.0 }
+                                                    { X = 50.0; Y = 50.0; Z = 0.0 }
+                                                    { X = -50.0; Y = 50.0; Z = 0.0 }
+                                                ]
+                                            ]
+                                    }
+                                ]
+                            SliceThicknessMm = Some 5.0
                         }
                     ]
             }
