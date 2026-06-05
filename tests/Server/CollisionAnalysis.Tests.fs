@@ -23,17 +23,17 @@ let sampleBody =
         Mesh = None
         ContourSlices = [ { Z = 0.0; Contours = [ squareContour 0.0 ]; Bounds = Some { Min = point2D 0.0 0.0; Max = point2D 10.0 10.0 } } ]
         Bounds = Some { Min = point3D 0.0 0.0 -1.0; Max = point3D 10.0 10.0 1.0 }
-        SliceThicknessMm = Some 5.0
+        SliceThicknessMm = Some (Length.millimeters 5.0)
     }
 
 let sampleSettings =
     {
-        BodySampleStepMm = Some 2.5
-        BeamSampleStepMm = Some 1.0
-        BeamAxisOffsetMm = Some 0.0
-        ClearanceRadiusMm = Some 1.0
-        ClearanceDistanceMm = Some 0.0
-        CollisionToleranceMm = Some 1.0
+        BodySampleStepMm = Some (Length.millimeters 2.5)
+        BeamSampleStepMm = Some (Length.millimeters 1.0)
+        BeamAxisOffsetMm = Some (Length.millimeters 0.0)
+        ClearanceRadiusMm = Some (Length.millimeters 1.0)
+        ClearanceDistanceMm = Some (Length.millimeters 0.0)
+        CollisionToleranceMm = Some (Length.millimeters 1.0)
         ArcStepDegrees = Some 1.0
     }
 

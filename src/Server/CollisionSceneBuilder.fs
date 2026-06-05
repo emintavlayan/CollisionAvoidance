@@ -3,12 +3,14 @@ module CollisionSceneBuilder
 open Shared
 open AccessoryVolume
 
+/// Represents the BODY-plus-optional-structures composition used for server-side scene assembly.
 type CollisionVolumeComposition = {
     Body: StructureSnapshotDto
     OptionalStructures: StructureSnapshotDto list
     Structures: StructureSnapshotDto array
 }
 
+/// Represents the detached collision scene passed into later visualization or accessory workflows.
 type CollisionScene = {
     Body: BodySnapshotDto
     Beams: BeamSnapshotDto list

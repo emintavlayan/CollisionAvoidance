@@ -73,7 +73,7 @@ let createPlaceholderContext () : ExportContext =
                                             ]
                                     }
                                 ]
-                            SliceThicknessMm = Some 5.0
+                            SliceThicknessMm = Some (Length.millimeters 5.0)
                         }
                     ]
             }

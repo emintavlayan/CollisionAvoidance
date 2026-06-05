@@ -2,6 +2,7 @@ module BeamSampling
 
 open Shared
 
+/// Represents one detached beam-axis sample carrying the geometry needed for clearance generation.
 type BeamAxisSample = {
     BeamId: string
     BeamName: string option

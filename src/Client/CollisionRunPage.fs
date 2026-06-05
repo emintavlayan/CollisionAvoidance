@@ -4,12 +4,14 @@ open System
 open SAFE
 open Shared
 
+/// Represents the client-side state for one collision-run summary page.
 type Model = {
     RunId: Guid
     Details: RemoteData<CollisionRunDetailsDto>
     ErrorMessage: string option
 }
 
+/// Represents the flattened collision-run summary values shown by the current client page.
 type SummaryViewModel = {
     RunId: string
     PatientId: string

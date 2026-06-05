@@ -2,22 +2,25 @@ namespace Shared
 
 open System
 
+/// Represents the detached sampling and tolerance settings used by SAFE collision analysis.
 type SamplingSettingsDto = {
-    BodySampleStepMm: float option
-    BeamSampleStepMm: float option
-    BeamAxisOffsetMm: float option
-    ClearanceRadiusMm: float option
-    ClearanceDistanceMm: float option
-    CollisionToleranceMm: float option
+    BodySampleStepMm: float<mm> option
+    BeamSampleStepMm: float<mm> option
+    BeamAxisOffsetMm: float<mm> option
+    ClearanceRadiusMm: float<mm> option
+    ClearanceDistanceMm: float<mm> option
+    CollisionToleranceMm: float<mm> option
     ArcStepDegrees: float option
 }
 
+/// Represents the high-level status of one collision-analysis stage or result.
 type CollisionStatusDto =
     | AnalysisPending
     | NoCollision
     | CollisionDetected
     | AnalysisError of string
 
+/// Represents the provenance label for one generated or detected collision sample point.
 type CollisionPointSampleTypeDto =
     | LineSample
     | FirstCapSample
@@ -26,6 +29,7 @@ type CollisionPointSampleTypeDto =
     | MeshSample
     | OtherSample of string
 
+/// Represents the detached provenance attached to one collision point.
 type CollisionPointSourceDto = {
     BeamId: string
     ControlPointIndex: int option
@@ -34,13 +38,15 @@ type CollisionPointSourceDto = {
     AccessoryId: string option
 }
 
+/// Represents one detached collision point with optional measured distance and provenance.
 type CollisionPointDto = {
     Location: Point3D
-    DistanceMm: float option
+    DistanceMm: float<mm> option
     Description: string option
     Source: CollisionPointSourceDto option
 }
 
+/// Represents one detached control-point collision result.
 type ControlPointCollisionResultDto = {
     ControlPointIndex: int
     GantryAngle: float option
@@ -48,6 +54,7 @@ type ControlPointCollisionResultDto = {
     CollisionPoints: CollisionPointDto list
 }
 
+/// Represents one detached beam-level collision result.
 type BeamCollisionResultDto = {
     BeamId: string
     BeamName: string option
@@ -55,6 +62,7 @@ type BeamCollisionResultDto = {
     ControlPointResults: ControlPointCollisionResultDto list
 }
 
+/// Represents the fast flat collision-analysis result used for first-pass triage.
 type FlatCollisionResultDto = {
     Status: CollisionStatusDto
     GeneratedPointCount: int
@@ -63,6 +71,7 @@ type FlatCollisionResultDto = {
     ElapsedMs: float option
 }
 
+/// Represents the detailed collision-analysis result with grouped provenance.
 type DetailedCollisionResultDto = {
     Status: CollisionStatusDto
     BeamResults: BeamCollisionResultDto list
@@ -71,6 +80,7 @@ type DetailedCollisionResultDto = {
     CollisionPoints: CollisionPointDto list
 }
 
+/// Represents one detached collision-analysis request sent from ESAPI to SAFE.
 type CollisionRunRequestDto = {
     Plan: PlanSnapshotDto
     Body: BodySnapshotDto
@@ -78,6 +88,7 @@ type CollisionRunRequestDto = {
     Accessories: AccessoryModelDto list
 }
 
+/// Represents the stored summary for one collision-analysis run.
 type CollisionRunSummaryDto = {
     RunId: Guid
     CreatedAtUtc: DateTime
@@ -87,12 +98,14 @@ type CollisionRunSummaryDto = {
     BeamResults: BeamCollisionResultDto list
 }
 
+/// Represents the SAFE response returned after creating one collision-analysis run.
 type CreateCollisionRunResponseDto = {
     RunId: Guid
     RunUrl: string option
     Summary: CollisionRunSummaryDto
 }
 
+/// Represents the stored request-plus-summary payload for one collision-analysis run.
 type CollisionRunDetailsDto = {
     RunId: Guid
     Request: CollisionRunRequestDto

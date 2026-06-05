@@ -1,5 +1,6 @@
 namespace Shared
 
+/// Represents the detached accessory category used when composing a collision scene.
 type AccessoryKindDto =
     | CouchBase
     | CouchSurface
@@ -7,6 +8,7 @@ type AccessoryKindDto =
     | BreastBoard
     | Other of string
 
+/// Represents one detached accessory model with optional mesh, optional structure, and optional bounds.
 type AccessoryModelDto = {
     AccessoryId: string
     Kind: AccessoryKindDto
@@ -18,8 +20,11 @@ type AccessoryModelDto = {
     IsEnabled: bool
 }
 
+/// Represents one detached couch-base wrapper.
 type CouchBaseDto = { Model: AccessoryModelDto }
 
+/// Represents one detached VacFix wrapper.
 type VacFixDto = { Model: AccessoryModelDto }
 
+/// Represents one detached breast-board wrapper.
 type BreastBoardDto = { Model: AccessoryModelDto }

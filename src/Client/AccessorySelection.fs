@@ -2,6 +2,7 @@ module AccessorySelection
 
 open Shared
 
+/// Represents the client-side accessory-selection state for future scene composition controls.
 type Model = { SelectedAccessoryIds: Set<string> }
 
 let init (accessories: AccessoryModelDto list) = {

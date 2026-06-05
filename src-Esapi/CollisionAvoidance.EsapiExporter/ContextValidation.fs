@@ -4,6 +4,7 @@ open System
 open Shared
 open CollisionAvoidance.EsapiExporter.EsapiPlanExtraction
 
+/// Represents the detached ESAPI export inputs gathered before validation.
 type ExportContext = {
     PatientId: string option
     CourseId: string option
@@ -13,6 +14,7 @@ type ExportContext = {
     OutputDirectory: string option
 }
 
+/// Represents the validated ESAPI export inputs that are safe to pass into extraction.
 type ValidatedEsapiContext = {
     Patient: string
     Course: string
@@ -27,12 +29,12 @@ type ValidatedEsapiContext = {
 /// Returns the first practical detached sampling settings used by the exporter.
 let defaultSamplingSettings =
     {
-        BodySampleStepMm = Some 2.5
-        BeamSampleStepMm = Some 5.0
-        BeamAxisOffsetMm = Some 550.0
-        ClearanceRadiusMm = Some 390.0
-        ClearanceDistanceMm = Some 390.0
-        CollisionToleranceMm = Some 1.0
+        BodySampleStepMm = Some (Length.millimeters 2.5)
+        BeamSampleStepMm = Some (Length.millimeters 5.0)
+        BeamAxisOffsetMm = Some (Length.millimeters 550.0)
+        ClearanceRadiusMm = Some (Length.millimeters 390.0)
+        ClearanceDistanceMm = Some (Length.millimeters 390.0)
+        CollisionToleranceMm = Some (Length.millimeters 1.0)
         ArcStepDegrees = Some 1.0
     }
 

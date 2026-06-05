@@ -9,6 +9,7 @@ open System.Text.Json
 open System.Text.Json.Serialization
 open Shared
 
+/// Represents the SAFE submission result returned to the ESAPI exporter workflow.
 type CollisionRunSubmissionResult = {
     RunId: Guid option
     RunPageUrl: Uri option

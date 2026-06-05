@@ -6,6 +6,7 @@ open Shared
 open GeometryMath
 open BeamSampling
 
+/// Represents one generated clearance-sampling point before BODY volume filtering.
 type CollisionPointCandidate = {
     Location: Point3D
     Source: CollisionPointSourceDto
@@ -15,17 +16,17 @@ type CollisionPointCandidate = {
 let getBeamAxisOffsetMm (settings: SamplingSettingsDto) =
     settings.BeamAxisOffsetMm
     |> Option.orElse settings.ClearanceDistanceMm
-    |> Option.defaultValue 550.0
+    |> Option.defaultValue (Length.millimeters 550.0)
 
 /// Returns the clearance radius used for line and cap generation.
 let getClearanceRadiusMm (settings: SamplingSettingsDto) =
     settings.ClearanceRadiusMm
     |> Option.orElse settings.ClearanceDistanceMm
-    |> Option.defaultValue 390.0
+    |> Option.defaultValue (Length.millimeters 390.0)
 
 /// Returns the preferred sampling resolution for clearance generation.
 let getSampleResolutionMm (settings: SamplingSettingsDto) =
-    settings.BeamSampleStepMm |> Option.defaultValue 5.0
+    settings.BeamSampleStepMm |> Option.defaultValue (Length.millimeters 5.0)
 
 /// Builds a candidate-point source payload from one beam-axis sample.
 let createPointSource (sampleType: CollisionPointSampleTypeDto) (sample: BeamAxisSample) = {
@@ -53,9 +54,9 @@ let createPerpendicularBasis (direction: Vector3D) : Result<Vector3D * Vector3D,
 /// Generates line-sample candidates from one beam-axis sample.
 let generateLineSampleCandidates (settings: SamplingSettingsDto) (sample: BeamAxisSample) : Result<CollisionPointCandidate list, string> =
     result {
-        let radius = getClearanceRadiusMm settings
-        let offset = getBeamAxisOffsetMm settings
-        let resolution = getSampleResolutionMm settings
+        let radius = getClearanceRadiusMm settings |> Length.mmToCm |> Length.toFloatCm
+        let offset = getBeamAxisOffsetMm settings |> Length.mmToCm |> Length.toFloatCm
+        let resolution = getSampleResolutionMm settings |> Length.mmToCm |> Length.toFloatCm
         let direction = vectorBetween sample.Isocenter sample.SourcePosition
         let! normalizedDirection = normalizeVector direction
         let lineCenter = translatePoint sample.Isocenter (scaleVector offset normalizedDirection)
@@ -83,9 +84,9 @@ let generateHalfDiskCapCandidates
     (sample: BeamAxisSample)
     : Result<CollisionPointCandidate list, string> =
     result {
-        let radius = getClearanceRadiusMm settings
-        let resolution = getSampleResolutionMm settings
-        let offset = getBeamAxisOffsetMm settings
+        let radius = getClearanceRadiusMm settings |> Length.mmToCm |> Length.toFloatCm
+        let resolution = getSampleResolutionMm settings |> Length.mmToCm |> Length.toFloatCm
+        let offset = getBeamAxisOffsetMm settings |> Length.mmToCm |> Length.toFloatCm
         let direction = vectorBetween sample.Isocenter sample.SourcePosition
         let! normalizedDirection = normalizeVector direction
         let! firstBasis, secondBasis = createPerpendicularBasis normalizedDirection

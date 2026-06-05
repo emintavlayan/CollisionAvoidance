@@ -2,12 +2,14 @@ module CollisionAvoidance.EsapiExporter.EsapiGeometryMapping
 
 open Shared
 
+/// Represents a compile-safe stand-in for an ESAPI `VVector`.
 type VectorLike = {
     X: float
     Y: float
     Z: float
 }
 
+/// Represents a compile-safe stand-in for detached 3D bounds from ESAPI or WPF.
 type Rect3DLike = {
     X: float
     Y: float
@@ -17,6 +19,7 @@ type Rect3DLike = {
     SizeZ: float
 }
 
+/// Represents a compile-safe stand-in for detached mesh geometry.
 type MeshGeometryLike = {
     Vertices: VectorLike list
     TriangleIndices: int list
@@ -24,17 +27,20 @@ type MeshGeometryLike = {
     CanFreeze: bool
 }
 
+/// Represents a compile-safe stand-in for one ESAPI contour point.
 type ContourPointLike = {
     X: float
     Y: float
     Z: float
 }
 
+/// Represents a compile-safe stand-in for one ESAPI contour slice.
 type ContourSliceLike = {
     Z: float
     Contours: ContourPointLike list list
 }
 
+/// Represents a detached wrapper around a cloned and frozen mesh snapshot.
 type DetachedMeshSnapshot =
     private
         {

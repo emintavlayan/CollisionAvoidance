@@ -81,7 +81,7 @@ let bodyStructure : EsapiStructureLike =
         DisplayName = Some "External"
         Mesh = None
         ContourSlices = [ bodyContour ]
-        SliceThicknessMm = Some 2.5
+        SliceThicknessMm = Some (Length.millimeters 2.5)
     }
 
 let meshOnlyBodyStructure : EsapiStructureLike =
@@ -101,7 +101,7 @@ let meshOnlyBodyStructure : EsapiStructureLike =
                 CanFreeze = true
             }
         ContourSlices = []
-        SliceThicknessMm = Some 2.5
+        SliceThicknessMm = Some (Length.millimeters 2.5)
     }
 
 let couchStructure : EsapiStructureLike =
@@ -110,7 +110,7 @@ let couchStructure : EsapiStructureLike =
         DisplayName = Some "Couch Surface"
         Mesh = None
         ContourSlices = []
-        SliceThicknessMm = Some 2.5
+        SliceThicknessMm = Some (Length.millimeters 2.5)
     }
 
 let createContext (structures: EsapiStructureLike list) : ExportContext =

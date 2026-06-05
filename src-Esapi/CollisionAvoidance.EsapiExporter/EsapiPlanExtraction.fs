@@ -4,6 +4,7 @@ open FsToolkit.ErrorHandling
 open Shared
 open CollisionAvoidance.EsapiExporter.EsapiGeometryMapping
 
+/// Represents a compile-safe detached control-point projection used by the exporter boundary.
 type EsapiControlPointLike = {
     Index: int
     GantryAngle: float
@@ -15,6 +16,7 @@ type EsapiControlPointLike = {
     MetersetWeight: float option
 }
 
+/// Represents a compile-safe detached beam projection used by the exporter boundary.
 type EsapiBeamLike = {
     BeamId: string
     BeamName: string option
@@ -30,6 +32,7 @@ type EsapiBeamLike = {
     ControlPoints: EsapiControlPointLike list
 }
 
+/// Represents a compile-safe detached plan projection used by the exporter boundary.
 type EsapiPlanLike = {
     PatientId: string
     CourseId: string option
@@ -39,21 +42,25 @@ type EsapiPlanLike = {
     Beams: EsapiBeamLike list
 }
 
+/// Represents a compile-safe detached structure projection used by the exporter boundary.
 type EsapiStructureLike = {
     StructureId: string
     DisplayName: string option
     Mesh: MeshGeometryLike option
     ContourSlices: ContourSliceLike list
-    SliceThicknessMm: float option
+    SliceThicknessMm: float<mm> option
 }
 
+/// Represents a compile-safe detached BODY projection used by the exporter boundary.
 type EsapiBodyLike = EsapiStructureLike
 
+/// Represents a compile-safe detached structure-set projection used by the exporter boundary.
 type EsapiStructureSetLike = {
     StructureSetId: string option
     Structures: EsapiStructureLike list
 }
 
+/// Represents the compile-safe detached export payload assembled before DTO mapping.
 type EsapiCollisionRunLike = {
     Plan: EsapiPlanLike
     Body: EsapiStructureLike

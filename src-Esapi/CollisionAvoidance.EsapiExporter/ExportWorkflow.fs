@@ -9,6 +9,7 @@ open CollisionAvoidance.EsapiExporter.EsapiPlanExtraction
 open CollisionAvoidance.EsapiExporter.PatientIdObfuscation
 open CollisionAvoidance.EsapiExporter.SafeServerClient
 
+/// Represents the exporter outcome after JSON fallback and optional SAFE submission.
 type ExportOutcome = {
     JsonFilePath: string
     SubmittedRun: CollisionRunSubmissionResult option

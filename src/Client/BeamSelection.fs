@@ -2,6 +2,7 @@ module BeamSelection
 
 open Shared
 
+/// Represents the client-side beam-selection state for future detailed filtering.
 type Model = { SelectedBeamIds: Set<string> }
 
 let init (plan: PlanSnapshotDto) = {

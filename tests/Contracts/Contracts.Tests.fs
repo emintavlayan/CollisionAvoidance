@@ -21,7 +21,7 @@ let sampleBody =
         Mesh = None
         ContourSlices = [ { Z = 0.0; Contours = [ sampleContour ]; Bounds = sampleContour.Bounds } ]
         Bounds = Some { Min = samplePoint 0.0 0.0 0.0; Max = samplePoint 10.0 10.0 10.0 }
-        SliceThicknessMm = Some 2.5
+        SliceThicknessMm = Some (Length.millimeters 2.5)
     }
 
 let sampleBeam =
@@ -65,7 +65,7 @@ let ``A bounds record can represent distinct minimum and maximum points`` () =
 let ``A sample detailed collision DTO can be constructed`` () =
     let collisionPoint = {
         Location = samplePoint 1.0 2.0 3.0
-        DistanceMm = Some 0.5
+        DistanceMm = Some (Length.millimeters 0.5)
         Description = Some "Inside BODY"
         Source =
             Some {
@@ -112,12 +112,12 @@ let ``A collision run request can contain a body snapshot and beam snapshots`` (
         Body = sampleBody
         SamplingSettings =
             {
-                BodySampleStepMm = Some 2.5
-                BeamSampleStepMm = Some 5.0
-                BeamAxisOffsetMm = Some 550.0
-                ClearanceRadiusMm = Some 390.0
-                ClearanceDistanceMm = Some 390.0
-                CollisionToleranceMm = Some 1.0
+                BodySampleStepMm = Some (Length.millimeters 2.5)
+                BeamSampleStepMm = Some (Length.millimeters 5.0)
+                BeamAxisOffsetMm = Some (Length.millimeters 550.0)
+                ClearanceRadiusMm = Some (Length.millimeters 390.0)
+                ClearanceDistanceMm = Some (Length.millimeters 390.0)
+                CollisionToleranceMm = Some (Length.millimeters 1.0)
                 ArcStepDegrees = Some 1.0
             }
         Accessories = []

@@ -46,9 +46,9 @@ let isPointInsidePolygon2D (point: Point3D) (polygon: Point3D list) =
         inside
 
 /// Estimates the axial slice thickness for the detached BODY snapshot.
-let estimateSliceThicknessMm (body: BodySnapshotDto) =
+let estimateSliceThicknessCm (body: BodySnapshotDto) =
     match body.SliceThicknessMm with
-    | Some thickness -> thickness
+    | Some thickness -> thickness |> Length.mmToCm |> Length.toFloatCm
     | None ->
         match body.ContourSlices with
         | firstSlice :: secondSlice :: _ -> abs (secondSlice.Z - firstSlice.Z)
@@ -56,7 +56,7 @@ let estimateSliceThicknessMm (body: BodySnapshotDto) =
 
 /// Finds the detached BODY slice whose axial slab contains the point.
 let findSliceForZ (body: BodySnapshotDto) (point: Point3D) =
-    let halfThickness = estimateSliceThicknessMm body / 2.0
+    let halfThickness = estimateSliceThicknessCm body / 2.0
 
     body.ContourSlices
     |> List.tryFind (fun slice -> point.Z >= slice.Z - halfThickness && point.Z < slice.Z + halfThickness)

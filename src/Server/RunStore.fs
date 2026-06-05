@@ -4,6 +4,7 @@ open System
 open System.Collections.Concurrent
 open Shared
 
+/// Represents one in-memory collision-run record with the original request and current summary.
 type CollisionRunRecord = {
     RunId: Guid
     Request: CollisionRunRequestDto

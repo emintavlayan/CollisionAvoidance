@@ -5,16 +5,19 @@ open Elmish
 open SAFE
 open Shared
 
+/// Represents the top-level client route state.
 type Page =
     | TodoPage
     | CollisionPage of CollisionRunPage.Model
 
+/// Represents the top-level client model for the SAFE app shell.
 type Model = {
     Page: Page
     Todos: RemoteData<Todo list>
     Input: string
 }
 
+/// Represents the top-level client messages handled by Elmish.
 type Msg =
     | SetInput of string
     | LoadTodos of ApiCall<unit, Todo list>
