@@ -20,26 +20,9 @@ let createAccessoryModels (context: ValidatedEsapiContext) : Result<AccessoryMod
     match context.CouchSurface with
     | Some couchSurface ->
         couchSurface
-        |> extractAccessoryModel CouchSurface
+        |> extractAccessoryModel CouchSurface context.StructureSet
         |> Result.map List.singleton
     | None -> Ok []
-
-/// Creates an ESAPI-like extraction payload from the validated export context.
-let createRunContext (context: ValidatedEsapiContext) (accessories: AccessoryModelDto list) : EsapiCollisionRunLike =
-    let updatedPlanContext = {
-        context.Plan with
-            PatientId = context.Patient
-            CourseId = Some context.Course
-            StructureSetId = context.StructureSet.StructureSetId |> Option.orElse context.Plan.StructureSetId
-            Beams = context.TreatmentBeams
-    }
-
-    {
-        Plan = updatedPlanContext
-        Body = context.Body
-        SamplingSettings = context.SamplingSettings
-        Accessories = accessories
-    }
 
 /// Obfuscates the patient id on a detached collision run request before serialization or submission.
 let obfuscateRequestPatientId (request: CollisionRunRequestDto) = {
@@ -59,7 +42,15 @@ let resolveOutputDirectory (context: ExportContext) =
 let createDetachedCollisionRunRequest (context: ValidatedEsapiContext) : Result<CollisionRunRequestDto, string> =
     result {
         let! accessories = createAccessoryModels context
-        let! request = createRunContext context accessories |> extractCollisionRunRequest
+        let! body = extractBodySnapshot context.StructureSet context.Body
+
+        let request = {
+            Plan = extractPlanSnapshot context.Patient context.Course context.StructureSet context.TreatmentBeams context.Plan
+            Body = body
+            SamplingSettings = context.SamplingSettings
+            Accessories = accessories
+        }
+
         return obfuscateRequestPatientId request
     }
 

@@ -34,13 +34,13 @@ module Length =
     let inline cmToMm (value: float<cm>) : float<mm> =
         millimeters (toFloatCm value * 10.0)
 
-/// Represents one detached 2D point whose coordinate values are expressed in centimeters.
+/// Represents one detached 2D point in the shared scene coordinate system.
 type Point2D = {
     X: float
     Y: float
 }
 
-/// Represents one detached 3D point whose coordinate values are expressed in centimeters.
+/// Represents one detached 3D point in the shared scene coordinate system.
 type Point3D = {
     X: float
     Y: float
@@ -86,14 +86,14 @@ type ContourDto = {
     Bounds: Bounds2D option
 }
 
-/// Represents one detached structure contour slice positioned along the Z axis in centimeters.
+/// Represents one detached structure contour slice positioned along the Z axis in the shared scene coordinate system.
 type ContourSliceDto = {
     Z: float
     Contours: ContourDto list
     Bounds: Bounds2D option
 }
 
-/// Represents one detached BODY contour slice positioned along the Z axis in centimeters.
+/// Represents one detached BODY contour slice positioned along the Z axis in the shared scene coordinate system.
 type BodySliceDto = {
     Z: float
     Contours: ContourDto list

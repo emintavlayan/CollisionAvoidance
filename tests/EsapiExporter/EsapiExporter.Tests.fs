@@ -1,130 +1,19 @@
 module EsapiExporter.Tests
 
-open CollisionAvoidance.EsapiExporter.PatientIdObfuscation
+open System.Windows.Media.Media3D
+open CollisionAvoidance.EsapiExporter.ContextValidation
 open CollisionAvoidance.EsapiExporter.EsapiGeometryMapping
 open CollisionAvoidance.EsapiExporter.EsapiPlanExtraction
-open CollisionAvoidance.EsapiExporter.ContextValidation
-open CollisionAvoidance.EsapiExporter.ExportWorkflow
+open CollisionAvoidance.EsapiExporter.PatientIdObfuscation
 open Shared
+open VMS.TPS.Common.Model.Types
 open Xunit
 
-let bodyContour =
-    {
-        Z = 0.0
-        Contours =
-            [
-                [
-                    { X = 0.0; Y = 0.0; Z = 0.0 }
-                    { X = 10.0; Y = 0.0; Z = 0.0 }
-                    { X = 10.0; Y = 10.0; Z = 0.0 }
-                    { X = 0.0; Y = 10.0; Z = 0.0 }
-                ]
-            ]
-    }
+/// Represents a detached 3D point used by the ESAPI exporter tests.
+let point3D x y z : Shared.Point3D = { X = x; Y = y; Z = z }
 
-let samplePlan : EsapiPlanLike =
-    {
-        PatientId = "PATIENT-001"
-        CourseId = Some "COURSE-1"
-        StructureSetId = Some "SS-1"
-        PlanId = "PLAN-1"
-        PlanName = Some "Plan 1"
-        Beams =
-            [
-                {
-                    BeamId = "Beam-1"
-                    BeamName = Some "Beam 1"
-                    IsSetupField = false
-                    GantryDirection = NotSpecified
-                    GantryStart = Some 0.0
-                    GantryStop = Some 0.0
-                    CouchAngle = Some 0.0
-                    PatientSupportAngle = Some 0.0
-                    CollimatorAngle = Some 0.0
-                    Isocenter = None
-                    SourcePosition = None
-                    ControlPoints = []
-                }
-            ]
-    }
-
-let planWithSetupAndTreatmentBeams : EsapiPlanLike =
-    {
-        samplePlan with
-            Beams =
-                [
-                    {
-                        samplePlan.Beams.Head with
-                            BeamId = "Setup-1"
-                            IsSetupField = true
-                    }
-                    samplePlan.Beams.Head
-                ]
-    }
-
-let planWithSetupBeamsOnly : EsapiPlanLike =
-    {
-        samplePlan with
-            Beams =
-                [
-                    {
-                        samplePlan.Beams.Head with
-                            BeamId = "Setup-1"
-                            IsSetupField = true
-                    }
-                ]
-    }
-
-let bodyStructure : EsapiStructureLike =
-    {
-        StructureId = "BODY"
-        DisplayName = Some "External"
-        Mesh = None
-        ContourSlices = [ bodyContour ]
-        SliceThicknessMm = Some (Length.millimeters 2.5)
-    }
-
-let meshOnlyBodyStructure : EsapiStructureLike =
-    {
-        StructureId = "BODY"
-        DisplayName = Some "External"
-        Mesh =
-            Some {
-                Vertices =
-                    [
-                        { X = 0.0; Y = 0.0; Z = 0.0 }
-                        { X = 1.0; Y = 0.0; Z = 0.0 }
-                        { X = 0.0; Y = 1.0; Z = 0.0 }
-                    ]
-                TriangleIndices = [ 0; 1; 2 ]
-                Bounds = Some { X = 0.0; Y = 0.0; Z = 0.0; SizeX = 1.0; SizeY = 1.0; SizeZ = 1.0 }
-                CanFreeze = true
-            }
-        ContourSlices = []
-        SliceThicknessMm = Some (Length.millimeters 2.5)
-    }
-
-let couchStructure : EsapiStructureLike =
-    {
-        StructureId = "CouchSurface"
-        DisplayName = Some "Couch Surface"
-        Mesh = None
-        ContourSlices = []
-        SliceThicknessMm = Some (Length.millimeters 2.5)
-    }
-
-let createContext (structures: EsapiStructureLike list) : ExportContext =
-    {
-        PatientId = Some "PATIENT-001"
-        CourseId = Some "COURSE-1"
-        PlanContext = Some samplePlan
-        StructureSetContext = Some { StructureSetId = Some "SS-1"; Structures = structures }
-        SamplingSettings = None
-        OutputDirectory = None
-    }
-
-let createContextWithPlan (plan: EsapiPlanLike) (structures: EsapiStructureLike list) : ExportContext =
-    { createContext structures with PlanContext = Some plan }
+/// Represents a detached 2D point used by the ESAPI exporter tests.
+let point2D x y : Point2D = { X = x; Y = y }
 
 [<Fact>]
 let ``Patient id obfuscation is deterministic for the same raw id`` () =
@@ -137,142 +26,116 @@ let ``Patient id obfuscation is deterministic for the same raw id`` () =
     Assert.NotEqual<string>(rawId, firstHash)
 
 [<Fact>]
-let ``Mapping a vector-like value creates a detached point`` () =
-    let point = mapVVectorToPoint3D { X = 1.0; Y = 2.0; Z = 3.0 }
+let ``BODY identifier matching is case insensitive`` () =
+    Assert.True(isBodyStructureId "body")
+    Assert.True(isBodyStructureId "BODY")
+    Assert.False(isBodyStructureId "PTV")
+
+[<Fact>]
+let ``Couch surface detection accepts exact ids and couch-like display names`` () =
+    Assert.True(looksLikeCouchSurfaceIdentifier "CouchSurface" None)
+    Assert.True(looksLikeCouchSurfaceIdentifier "SUPPORT" (Some "Couch Surface"))
+    Assert.False(looksLikeCouchSurfaceIdentifier "PTV" (Some "Target"))
+
+[<Fact>]
+let ``Default sampling settings preserve the first-version millimeter values`` () =
+    Assert.Equal(2.5, defaultSamplingSettings.BodySampleStepMm.Value |> Length.toFloatMm)
+    Assert.Equal(5.0, defaultSamplingSettings.BeamSampleStepMm.Value |> Length.toFloatMm)
+    Assert.Equal(550.0, defaultSamplingSettings.BeamAxisOffsetMm.Value |> Length.toFloatMm)
+    Assert.Equal(390.0, defaultSamplingSettings.ClearanceRadiusMm.Value |> Length.toFloatMm)
+
+[<Fact>]
+let ``Real ESAPI gantry directions map into detached direction values`` () =
+    Assert.Equal(Clockwise, mapGantryDirection GantryDirection.Clockwise)
+    Assert.Equal(CounterClockwise, mapGantryDirection GantryDirection.CounterClockwise)
+    Assert.Equal(NotSpecified, mapGantryDirection GantryDirection.None)
+
+[<Fact>]
+let ``Mapping a VVector creates a detached point`` () =
+    let point = mapVVectorToPoint3D (VVector(1.0, 2.0, 3.0))
 
     Assert.Equal(1.0, point.X)
     Assert.Equal(2.0, point.Y)
     Assert.Equal(3.0, point.Z)
 
 [<Fact>]
-let ``Mapping mesh bounds creates the expected detached bounds`` () =
-    let bounds =
-        mapMeshBoundsToBounds3D {
-            X = -1.0
-            Y = -2.0
-            Z = -3.0
-            SizeX = 5.0
-            SizeY = 6.0
-            SizeZ = 7.0
-        }
+let ``Mapping contour slices computes contour and slice bounds`` () =
+    let slice =
+        mapBodySlice
+            5.0
+            [|
+                [|
+                    VVector(0.0, 0.0, 5.0)
+                    VVector(10.0, 0.0, 5.0)
+                    VVector(10.0, 10.0, 5.0)
+                    VVector(0.0, 10.0, 5.0)
+                |]
+            |]
 
-    Assert.Equal(-1.0, bounds.Min.X)
-    Assert.Equal(4.0, bounds.Max.X)
-    Assert.Equal(4.0, bounds.Max.Z)
-
-[<Fact>]
-let ``Context validation collects multiple required context errors`` () =
-    let context =
-        {
-            PatientId = None
-            CourseId = None
-            PlanContext = None
-            StructureSetContext = None
-            SamplingSettings = None
-            OutputDirectory = None
-        }
-
-    let result = validateContext context
-
-    match result with
-    | Ok _ -> failwith "Expected context validation to fail."
-    | Error errors ->
-        Assert.Contains("No patient is currently loaded.", errors)
-        Assert.Contains("No course is currently loaded.", errors)
-        Assert.Contains("No plan is currently loaded.", errors)
-        Assert.Contains("No structure set is currently loaded.", errors)
+    Assert.Equal(5.0, slice.Z)
+    Assert.Single(slice.Contours) |> ignore
+    Assert.Equal(0.0, slice.Bounds.Value.Min.X)
+    Assert.Equal(10.0, slice.Bounds.Value.Max.Y)
 
 [<Fact>]
-let ``Context validation requires a BODY structure`` () =
-    let context = createContext [ couchStructure ]
+let ``Creating a detached mesh snapshot clones and freezes a mesh`` () =
+    let mesh = MeshGeometry3D()
+    mesh.Positions.Add(System.Windows.Media.Media3D.Point3D(0.0, 0.0, 0.0))
+    mesh.Positions.Add(System.Windows.Media.Media3D.Point3D(1.0, 0.0, 0.0))
+    mesh.Positions.Add(System.Windows.Media.Media3D.Point3D(0.0, 1.0, 0.0))
+    mesh.TriangleIndices.Add(0)
+    mesh.TriangleIndices.Add(1)
+    mesh.TriangleIndices.Add(2)
 
-    let result = validateContext context
-
-    match result with
-    | Ok _ -> failwith "Expected context validation to fail when BODY is missing."
-    | Error errors ->
-        Assert.Contains("BODY structure was not found.", errors)
-
-[<Fact>]
-let ``Context validation allows a missing couch surface`` () =
-    let context = createContext [ bodyStructure ]
-
-    let result = validateContext context
+    let result = createDetachedMeshSnapshot mesh
 
     match result with
-    | Ok validatedContext ->
-        Assert.Equal("BODY", validatedContext.Body.StructureId)
-        Assert.True(validatedContext.CouchSurface.IsNone)
-    | Error errors ->
-        failwith (String.concat "; " errors)
-
-[<Fact>]
-let ``Context validation returns an optional couch surface when present`` () =
-    let context = createContext [ bodyStructure; couchStructure ]
-
-    let result = validateContext context
-
-    match result with
-    | Ok validatedContext ->
-        let couchSurface = validatedContext.CouchSurface |> Option.defaultWith (fun () -> failwith "Expected couch surface to be discovered.")
-        Assert.Equal("CouchSurface", couchSurface.StructureId)
-    | Error errors ->
-        failwith (String.concat "; " errors)
-
-[<Fact>]
-let ``Context validation filters setup fields from treatment beams`` () =
-    let context = createContextWithPlan planWithSetupAndTreatmentBeams [ bodyStructure ]
-
-    let result = validateContext context
-
-    match result with
-    | Ok validatedContext ->
-        Assert.Single(validatedContext.TreatmentBeams) |> ignore
-        Assert.Equal("Beam-1", validatedContext.TreatmentBeams.Head.BeamId)
-    | Error errors ->
-        failwith (String.concat "; " errors)
-
-[<Fact>]
-let ``Context validation fails when no treatment beams remain after setup filtering`` () =
-    let context = createContextWithPlan planWithSetupBeamsOnly [ bodyStructure ]
-
-    let result = validateContext context
-
-    match result with
-    | Ok _ -> failwith "Expected validation to fail when only setup fields are present."
-    | Error errors ->
-        Assert.Contains("No treatment beams were supplied.", errors)
-
-[<Fact>]
-let ``Creating a detached request requires BODY contour slices for first-version analysis`` () =
-    let context = createContext [ meshOnlyBodyStructure ]
-
-    let result =
-        context
-        |> validateContext
-        |> Result.mapError (String.concat "; ")
-        |> Result.bind createDetachedCollisionRunRequest
-
-    match result with
-    | Ok _ -> failwith "Expected BODY contour extraction to fail."
-    | Error error ->
-        Assert.Equal("BODY structure does not contain contour slices for first-version analysis.", error)
-
-[<Fact>]
-let ``Detached export request obfuscates the patient id and includes the optional couch surface`` () =
-    let context = createContext [ bodyStructure; couchStructure ]
-
-    let result =
-        context
-        |> validateContext
-        |> Result.mapError (String.concat "; ")
-        |> Result.bind createDetachedCollisionRunRequest
-
-    match result with
-    | Ok request ->
-        Assert.NotEqual<string>("PATIENT-001", request.Plan.PatientId)
-        Assert.Equal("BODY", request.Body.StructureId)
-        Assert.Single(request.Accessories) |> ignore
-        Assert.Equal(CouchSurface, request.Accessories.Head.Kind)
+    | Ok snapshot ->
+        let frozenMesh = getDetachedMeshValue snapshot
+        Assert.True(frozenMesh.IsFrozen)
+        Assert.NotSame(mesh, frozenMesh)
     | Error error ->
         failwith error
+
+[<Fact>]
+let ``Mapping a mesh creates vertices triangles and bounds`` () =
+    let mesh = MeshGeometry3D()
+    mesh.Positions.Add(System.Windows.Media.Media3D.Point3D(0.0, 0.0, 0.0))
+    mesh.Positions.Add(System.Windows.Media.Media3D.Point3D(1.0, 0.0, 0.0))
+    mesh.Positions.Add(System.Windows.Media.Media3D.Point3D(0.0, 1.0, 0.0))
+    mesh.TriangleIndices.Add(0)
+    mesh.TriangleIndices.Add(1)
+    mesh.TriangleIndices.Add(2)
+
+    let result = mapMeshToMeshDto mesh
+
+    match result with
+    | Ok dto ->
+        Assert.Equal(3, dto.Vertices.Length)
+        Assert.Single(dto.Triangles) |> ignore
+        Assert.True(dto.Bounds.IsSome)
+    | Error error ->
+        failwith error
+
+[<Fact>]
+let ``Combining body slice bounds creates detached volume bounds`` () =
+    let slices =
+        [
+            {
+                Z = 0.0
+                Contours = []
+                Bounds = Some { Min = point2D 0.0 0.0; Max = point2D 10.0 10.0 }
+            }
+            {
+                Z = 5.0
+                Contours = []
+                Bounds = Some { Min = point2D -2.0 -1.0; Max = point2D 12.0 11.0 }
+            }
+        ]
+
+    let bounds = tryCreateBounds3DFromBodySlices slices
+
+    Assert.True(bounds.IsSome)
+    Assert.Equal(-2.0, bounds.Value.Min.X)
+    Assert.Equal(11.0, bounds.Value.Max.Y)
+    Assert.Equal(5.0, bounds.Value.Max.Z)

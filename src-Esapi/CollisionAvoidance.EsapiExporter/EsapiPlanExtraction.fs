@@ -1,258 +1,204 @@
 module CollisionAvoidance.EsapiExporter.EsapiPlanExtraction
 
+open System
 open FsToolkit.ErrorHandling
 open Shared
+open VMS.TPS.Common.Model.API
+open VMS.TPS.Common.Model.Types
 open CollisionAvoidance.EsapiExporter.EsapiGeometryMapping
 
-/// Represents a compile-safe detached control-point projection used by the exporter boundary.
-type EsapiControlPointLike = {
-    Index: int
-    GantryAngle: float
-    CouchAngle: float option
-    PatientSupportAngle: float option
-    CollimatorAngle: float option
-    SourcePosition: VectorLike option
-    Isocenter: VectorLike option
-    MetersetWeight: float option
-}
+/// Represents one real ESAPI gantry direction mapped into the detached contracts enum.
+let mapGantryDirection (direction: GantryDirection) =
+    match direction with
+    | GantryDirection.Clockwise -> Clockwise
+    | GantryDirection.CounterClockwise -> CounterClockwise
+    | GantryDirection.None -> NotSpecified
+    | _ -> NotSpecified
 
-/// Represents a compile-safe detached beam projection used by the exporter boundary.
-type EsapiBeamLike = {
-    BeamId: string
-    BeamName: string option
-    IsSetupField: bool
-    GantryDirection: GantryDirectionDto
-    GantryStart: float option
-    GantryStop: float option
-    CouchAngle: float option
-    PatientSupportAngle: float option
-    CollimatorAngle: float option
-    Isocenter: VectorLike option
-    SourcePosition: VectorLike option
-    ControlPoints: EsapiControlPointLike list
-}
-
-/// Represents a compile-safe detached plan projection used by the exporter boundary.
-type EsapiPlanLike = {
-    PatientId: string
-    CourseId: string option
-    StructureSetId: string option
-    PlanId: string
-    PlanName: string option
-    Beams: EsapiBeamLike list
-}
-
-/// Represents a compile-safe detached structure projection used by the exporter boundary.
-type EsapiStructureLike = {
-    StructureId: string
-    DisplayName: string option
-    Mesh: MeshGeometryLike option
-    ContourSlices: ContourSliceLike list
-    SliceThicknessMm: float<mm> option
-}
-
-/// Represents a compile-safe detached BODY projection used by the exporter boundary.
-type EsapiBodyLike = EsapiStructureLike
-
-/// Represents a compile-safe detached structure-set projection used by the exporter boundary.
-type EsapiStructureSetLike = {
-    StructureSetId: string option
-    Structures: EsapiStructureLike list
-}
-
-/// Represents the compile-safe detached export payload assembled before DTO mapping.
-type EsapiCollisionRunLike = {
-    Plan: EsapiPlanLike
-    Body: EsapiStructureLike
-    SamplingSettings: SamplingSettingsDto
-    Accessories: AccessoryModelDto list
-}
-
-/// Maps a setup-field flag into a detached beam kind.
+/// Represents one real ESAPI setup-field flag mapped into the detached beam-kind enum.
 let mapBeamKind (isSetupField: bool) =
-    if isSetupField then
-        SetupField
+    if isSetupField then SetupField else TreatmentBeam
+
+/// Represents one beam control-point list converted into a stable F# list.
+let getControlPoints (beam: Beam) =
+    beam.ControlPoints |> Seq.toList
+
+/// Represents the first control point of a beam when one exists.
+let tryGetFirstControlPoint (beam: Beam) =
+    beam |> getControlPoints |> List.tryHead
+
+/// Represents the last control point of a beam when one exists.
+let tryGetLastControlPoint (beam: Beam) =
+    beam |> getControlPoints |> List.tryLast
+
+/// Represents the detached source position for a beam at the supplied gantry angle.
+let tryGetSourcePosition (beam: Beam) (gantryAngle: float) : Point3D option =
+    try
+        beam.GetSourceLocation gantryAngle
+        |> mapVVectorToPoint3D
+        |> Some
+    with _ ->
+        None
+
+/// Represents the detached patient identifier extracted from the current ESAPI patient.
+let getPatientIdentifier (patient: Patient) =
+    patient.Id2
+
+/// Represents the detached display-name option for one nullable ESAPI string value.
+let toOptionalText (value: string) =
+    if String.IsNullOrWhiteSpace value then None else Some value
+
+/// Represents the detached body or structure slice thickness extracted from the ESAPI image.
+let getImageSliceThickness (structureSet: StructureSet) =
+    if isNull structureSet.Image then None else Some (Length.millimeters structureSet.Image.ZRes)
+
+/// Represents the detached Z coordinate for one image plane in the current structure set.
+let getPlaneZ (structureSet: StructureSet) (zIndex: int) =
+    structureSet.Image.Origin.z + float zIndex * structureSet.Image.ZRes
+
+/// Represents the detached contour slices extracted from `Structure.GetContoursOnImagePlane`.
+let extractContourSlicesOnImagePlanes (structureSet: StructureSet) (structure: Structure) =
+    if isNull structureSet.Image then
+        Error "Structure set image was not available."
     else
-        TreatmentBeam
+        let slices =
+            [ 0 .. structureSet.Image.ZSize - 1 ]
+            |> List.choose (fun zIndex ->
+                let contours =
+                    structure.GetContoursOnImagePlane zIndex
+                    |> Array.filter (fun contour -> not (isNull contour) && contour.Length > 0)
 
-/// Returns the first detached control point when one exists.
-let tryGetFirstControlPoint (beamContext: EsapiBeamLike) =
-    beamContext.ControlPoints |> List.tryHead
+                if contours.Length = 0 then
+                    None
+                else
+                    Some (getPlaneZ structureSet zIndex, contours))
 
-/// Returns the last detached control point when one exists.
-let tryGetLastControlPoint (beamContext: EsapiBeamLike) =
-    beamContext.ControlPoints |> List.tryLast
-
-/// Resolves the first-version gantry start angle from the beam or its first control point.
-let resolveGantryStart (beamContext: EsapiBeamLike) =
-    beamContext.GantryStart
-    |> Option.orElseWith (fun () -> beamContext |> tryGetFirstControlPoint |> Option.map (fun point -> point.GantryAngle))
-
-/// Resolves the first-version gantry stop angle from the beam or its last control point.
-let resolveGantryStop (beamContext: EsapiBeamLike) =
-    beamContext.GantryStop
-    |> Option.orElseWith (fun () -> beamContext |> tryGetLastControlPoint |> Option.map (fun point -> point.GantryAngle))
-
-/// Resolves the detached beam couch angle from the beam or its first control point.
-let resolveBeamCouchAngle (beamContext: EsapiBeamLike) =
-    beamContext.CouchAngle
-    |> Option.orElseWith (fun () -> beamContext |> tryGetFirstControlPoint |> Option.bind (fun point -> point.CouchAngle))
-
-/// Resolves the detached beam patient-support angle from the beam or its first control point.
-let resolveBeamPatientSupportAngle (beamContext: EsapiBeamLike) =
-    beamContext.PatientSupportAngle
-    |> Option.orElseWith (fun () -> beamContext |> tryGetFirstControlPoint |> Option.bind (fun point -> point.PatientSupportAngle))
-
-/// Resolves the detached beam collimator angle from the beam or its first control point.
-let resolveBeamCollimatorAngle (beamContext: EsapiBeamLike) =
-    beamContext.CollimatorAngle
-    |> Option.orElseWith (fun () -> beamContext |> tryGetFirstControlPoint |> Option.bind (fun point -> point.CollimatorAngle))
-
-/// Resolves the detached beam isocenter from the beam or its first control point.
-let resolveBeamIsocenter (beamContext: EsapiBeamLike) =
-    beamContext.Isocenter
-    |> Option.map mapVVectorToPoint3D
-    |> Option.orElseWith (fun () -> beamContext |> tryGetFirstControlPoint |> Option.bind (fun point -> point.Isocenter |> Option.map mapVVectorToPoint3D))
-
-/// Resolves the detached beam source position from the beam or its first control point.
-let resolveBeamSourcePosition (beamContext: EsapiBeamLike) =
-    beamContext.SourcePosition
-    |> Option.map mapVVectorToPoint3D
-    |> Option.orElseWith (fun () -> beamContext |> tryGetFirstControlPoint |> Option.bind (fun point -> point.SourcePosition |> Option.map mapVVectorToPoint3D))
-
-/// Maps detached BODY slices from an ESAPI structure projection.
-let mapBodyContourSlices (structureContext: EsapiStructureLike) =
-    structureContext.ContourSlices |> List.map mapBodySlice
-
-/// Maps detached structure contour slices from an ESAPI structure projection.
-let mapStructureContourSlices (structureContext: EsapiStructureLike) =
-    structureContext.ContourSlices |> List.map mapContourSlice
-
-/// Resolves detached BODY or structure bounds from mesh bounds first, then contour slices.
-let resolveStructureBounds (mesh: MeshGeometryLike option) (bodySlices: BodySliceDto list) =
-    mesh
-    |> Option.bind (fun meshGeometry -> meshGeometry.Bounds)
-    |> Option.map mapMeshBoundsToBounds3D
-    |> Option.orElseWith (fun () -> tryCreateBounds3DFromSlices bodySlices)
-
-/// Extracts a detached control point snapshot from one ESAPI control point projection.
-let extractControlPointSnapshot (controlPointContext: EsapiControlPointLike) : ControlPointSnapshotDto = {
-    Index = controlPointContext.Index
-    GantryAngle = controlPointContext.GantryAngle
-    CouchAngle = controlPointContext.CouchAngle
-    CollimatorAngle = controlPointContext.CollimatorAngle
-    SourcePosition = controlPointContext.SourcePosition |> Option.map mapVVectorToPoint3D
-    Isocenter = controlPointContext.Isocenter |> Option.map mapVVectorToPoint3D
-    MetersetWeight = controlPointContext.MetersetWeight
-    PatientSupportAngle = controlPointContext.PatientSupportAngle
-}
-
-/// Extracts a detached beam snapshot from one ESAPI beam projection.
-let extractBeamSnapshot (beamContext: EsapiBeamLike) : BeamSnapshotDto = {
-    BeamId = beamContext.BeamId
-    BeamName = beamContext.BeamName
-    BeamKind = mapBeamKind beamContext.IsSetupField
-    IsTreatmentBeam = not beamContext.IsSetupField
-    IsSetupField = beamContext.IsSetupField
-    GantryDirection = beamContext.GantryDirection
-    GantryStart = resolveGantryStart beamContext
-    GantryStop = resolveGantryStop beamContext
-    CouchAngle = resolveBeamCouchAngle beamContext
-    PatientSupportAngle = resolveBeamPatientSupportAngle beamContext
-    CollimatorAngle = resolveBeamCollimatorAngle beamContext
-    Isocenter = resolveBeamIsocenter beamContext
-    SourcePosition = resolveBeamSourcePosition beamContext
-    ControlPoints = beamContext.ControlPoints |> List.map extractControlPointSnapshot
-}
-
-/// Extracts a detached plan snapshot from the current ESAPI plan projection.
-let extractPlanSnapshot (planContext: EsapiPlanLike) : PlanSnapshotDto = {
-    PatientId = planContext.PatientId
-    CourseId = planContext.CourseId
-    StructureSetId = planContext.StructureSetId
-    PlanId = planContext.PlanId
-    PlanName = planContext.PlanName
-    Beams = planContext.Beams |> List.map extractBeamSnapshot
-}
-
-/// Extracts detached BODY contour slices from one ESAPI structure projection.
-let extractContourSlices (structureContext: EsapiStructureLike) : Result<BodySliceDto list, string> =
-    let slices = mapBodyContourSlices structureContext
-
-    if slices.IsEmpty then
-        Error "BODY structure does not contain contour slices for first-version analysis."
-    else
         Ok slices
 
-/// Extracts a detached body snapshot from the ESAPI BODY projection.
-let extractBodySnapshot (bodyContext: EsapiStructureLike) : Result<BodySnapshotDto, string> =
+/// Represents one detached control-point snapshot extracted from a real ESAPI control point.
+let extractControlPointSnapshot (beam: Beam) (index: int) (controlPoint: ControlPoint) : ControlPointSnapshotDto = {
+    Index = index
+    GantryAngle = controlPoint.GantryAngle
+    CouchAngle = Some controlPoint.PatientSupportAngle
+    CollimatorAngle = Some controlPoint.CollimatorAngle
+    SourcePosition = tryGetSourcePosition beam controlPoint.GantryAngle
+    Isocenter = Some (beam.IsocenterPosition |> mapVVectorToPoint3D)
+    MetersetWeight = Some controlPoint.MetersetWeight
+    PatientSupportAngle = Some controlPoint.PatientSupportAngle
+}
+
+/// Represents one detached beam snapshot extracted from a real ESAPI beam.
+let extractBeamSnapshot (beam: Beam) : BeamSnapshotDto =
+    let controlPoints = getControlPoints beam
+    let firstControlPoint = controlPoints |> List.tryHead
+    let lastControlPoint = controlPoints |> List.tryLast
+
+    {
+        BeamId = beam.Id
+        BeamName = beam.Name |> toOptionalText
+        BeamKind = mapBeamKind beam.IsSetupField
+        IsTreatmentBeam = not beam.IsSetupField
+        IsSetupField = beam.IsSetupField
+        GantryDirection = beam.GantryDirection |> mapGantryDirection
+        GantryStart = firstControlPoint |> Option.map (fun controlPoint -> controlPoint.GantryAngle)
+        GantryStop = lastControlPoint |> Option.map (fun controlPoint -> controlPoint.GantryAngle)
+        CouchAngle = firstControlPoint |> Option.map (fun controlPoint -> controlPoint.PatientSupportAngle)
+        PatientSupportAngle = firstControlPoint |> Option.map (fun controlPoint -> controlPoint.PatientSupportAngle)
+        CollimatorAngle = firstControlPoint |> Option.map (fun controlPoint -> controlPoint.CollimatorAngle)
+        Isocenter = Some (beam.IsocenterPosition |> mapVVectorToPoint3D)
+        SourcePosition =
+            firstControlPoint
+            |> Option.bind (fun controlPoint -> tryGetSourcePosition beam controlPoint.GantryAngle)
+        ControlPoints = controlPoints |> List.mapi (extractControlPointSnapshot beam)
+    }
+
+/// Represents one detached plan snapshot extracted from the current ESAPI plan and treatment-beam list.
+let extractPlanSnapshot (patient: Patient) (course: Course) (structureSet: StructureSet) (treatmentBeams: Beam list) (plan: PlanSetup) : PlanSnapshotDto = {
+    PatientId = getPatientIdentifier patient
+    CourseId = Some course.Id
+    StructureSetId = Some structureSet.Id
+    PlanId = plan.Id
+    PlanName = plan.Name |> toOptionalText
+    Beams = treatmentBeams |> List.map extractBeamSnapshot
+}
+
+/// Represents one detached BODY-slice list extracted from the current ESAPI BODY structure.
+let extractBodyContourSlices (structureSet: StructureSet) (structure: Structure) : Result<BodySliceDto list, string> =
+    extractContourSlicesOnImagePlanes structureSet structure
+    |> Result.bind (fun slices ->
+        let mappedSlices = slices |> List.map (fun (z, contours) -> mapBodySlice z contours)
+
+        if mappedSlices.IsEmpty then
+            Error "BODY structure does not contain contour slices for first-version analysis."
+        else
+            Ok mappedSlices)
+
+/// Represents one detached structure-slice list extracted from the current ESAPI structure.
+let extractStructureContourSlices (structureSet: StructureSet) (structure: Structure) : Result<ContourSliceDto list, string> =
+    extractContourSlicesOnImagePlanes structureSet structure
+    |> Result.map (List.map (fun (z, contours) -> mapContourSlice z contours))
+
+/// Represents one detached BODY snapshot extracted from the current ESAPI BODY structure.
+let extractBodySnapshot (structureSet: StructureSet) (body: Structure) : Result<BodySnapshotDto, string> =
     result {
-        let! contourSlices = extractContourSlices bodyContext
+        let! contourSlices = extractBodyContourSlices structureSet body
 
         let! mesh =
-            match bodyContext.Mesh with
-            | Some meshGeometry ->
-                meshGeometry
+            if isNull body.MeshGeometry then
+                Ok None
+            else
+                body.MeshGeometry
                 |> createDetachedMeshSnapshot
                 |> Result.bind (fun snapshot -> snapshot |> getDetachedMeshValue |> mapMeshToMeshDto |> Result.map Some)
-            | None -> Ok None
+
+        let contourBounds = contourSlices |> tryCreateBounds3DFromBodySlices
+        let meshBounds = mesh |> Option.bind (fun meshDto -> meshDto.Bounds)
 
         return {
-            StructureId = bodyContext.StructureId
-            DisplayName = bodyContext.DisplayName
+            StructureId = body.Id
+            DisplayName = body.Name |> toOptionalText
             Mesh = mesh
             ContourSlices = contourSlices
-            Bounds = resolveStructureBounds bodyContext.Mesh contourSlices
-            SliceThicknessMm = bodyContext.SliceThicknessMm
+            Bounds = contourBounds |> Option.orElse meshBounds
+            SliceThicknessMm = getImageSliceThickness structureSet
         }
     }
 
-/// Extracts a detached structure snapshot from one ESAPI structure projection.
-let extractStructureSnapshot (structureContext: EsapiStructureLike) : Result<StructureSnapshotDto, string> =
+/// Represents one detached structure snapshot extracted from the current ESAPI structure.
+let extractStructureSnapshot (structureSet: StructureSet) (structure: Structure) : Result<StructureSnapshotDto, string> =
     result {
+        let! contourSlices = extractStructureContourSlices structureSet structure
+
         let! mesh =
-            match structureContext.Mesh with
-            | Some meshGeometry ->
-                meshGeometry
+            if isNull structure.MeshGeometry then
+                Ok None
+            else
+                structure.MeshGeometry
                 |> createDetachedMeshSnapshot
                 |> Result.bind (fun snapshot -> snapshot |> getDetachedMeshValue |> mapMeshToMeshDto |> Result.map Some)
-            | None -> Ok None
 
-        let contourSlices = mapStructureContourSlices structureContext
-        let bodyLikeSlices = contourSlices |> List.map (fun slice -> { Z = slice.Z; Contours = slice.Contours; Bounds = slice.Bounds })
+        let contourBounds = contourSlices |> tryCreateBounds3DFromContourSlices
+        let meshBounds = mesh |> Option.bind (fun meshDto -> meshDto.Bounds)
 
         return {
-            StructureId = structureContext.StructureId
-            DisplayName = structureContext.DisplayName
+            StructureId = structure.Id
+            DisplayName = structure.Name |> toOptionalText
             Mesh = mesh
             ContourSlices = contourSlices
-            Bounds = resolveStructureBounds structureContext.Mesh bodyLikeSlices
+            Bounds = contourBounds |> Option.orElse meshBounds
         }
     }
 
-/// Extracts a detached accessory model from one ESAPI structure projection.
-let extractAccessoryModel (kind: AccessoryKindDto) (structureContext: EsapiStructureLike) : Result<AccessoryModelDto, string> =
-    extractStructureSnapshot structureContext
-    |> Result.map (fun structure -> {
-        AccessoryId = structure.StructureId
+/// Represents one detached accessory DTO extracted from a real ESAPI structure.
+let extractAccessoryModel (kind: AccessoryKindDto) (structureSet: StructureSet) (structure: Structure) : Result<AccessoryModelDto, string> =
+    extractStructureSnapshot structureSet structure
+    |> Result.map (fun snapshot -> {
+        AccessoryId = snapshot.StructureId
         Kind = kind
-        DisplayName = structure.DisplayName |> Option.defaultValue structure.StructureId
-        Mesh = structure.Mesh
-        Structure = Some structure
-        Bounds = structure.Bounds
+        DisplayName = snapshot.DisplayName |> Option.defaultValue snapshot.StructureId
+        Mesh = snapshot.Mesh
+        Structure = Some snapshot
+        Bounds = snapshot.Bounds
         Offset = None
         IsEnabled = true
     })
-
-/// Extracts the full detached collision run request from ESAPI-like plan and body projections.
-let extractCollisionRunRequest (runContext: EsapiCollisionRunLike) : Result<CollisionRunRequestDto, string> =
-    result {
-        let! body = extractBodySnapshot runContext.Body
-
-        return {
-            Plan = extractPlanSnapshot runContext.Plan
-            Body = body
-            SamplingSettings = runContext.SamplingSettings
-            Accessories = runContext.Accessories
-        }
-    }

@@ -2,31 +2,29 @@ module CollisionAvoidance.EsapiExporter.ContextValidation
 
 open System
 open Shared
-open CollisionAvoidance.EsapiExporter.EsapiPlanExtraction
+open VMS.TPS.Common.Model.API
 
-/// Represents the detached ESAPI export inputs gathered before validation.
+/// Represents the ESAPI export inputs gathered before validation starts.
 type ExportContext = {
-    PatientId: string option
-    CourseId: string option
-    PlanContext: EsapiPlanLike option
-    StructureSetContext: EsapiStructureSetLike option
+    ScriptContext: ScriptContext
     SamplingSettings: SamplingSettingsDto option
     OutputDirectory: string option
 }
 
-/// Represents the validated ESAPI export inputs that are safe to pass into extraction.
+/// Represents the validated ESAPI entities that are safe to pass into extraction.
 type ValidatedEsapiContext = {
-    Patient: string
-    Course: string
-    Plan: EsapiPlanLike
-    StructureSet: EsapiStructureSetLike
-    Body: EsapiStructureLike
-    CouchSurface: EsapiStructureLike option
-    TreatmentBeams: EsapiBeamLike list
+    ScriptContext: ScriptContext
+    Patient: Patient
+    Course: Course
+    Plan: PlanSetup
+    StructureSet: StructureSet
+    Body: Structure
+    CouchSurface: Structure option
+    TreatmentBeams: Beam list
     SamplingSettings: SamplingSettingsDto
 }
 
-/// Returns the first practical detached sampling settings used by the exporter.
+/// Represents the first practical detached sampling settings used by the exporter.
 let defaultSamplingSettings =
     {
         BodySampleStepMm = Some (Length.millimeters 2.5)
@@ -38,114 +36,115 @@ let defaultSamplingSettings =
         ArcStepDegrees = Some 1.0
     }
 
-/// Validates that an optional text input is present and non-blank.
-let validateRequiredText errorMessage (value: string option) =
-    match value with
-    | Some text when String.IsNullOrWhiteSpace text |> not -> Ok text
-    | _ -> Error errorMessage
-
-/// Normalizes a structure identifier for case-insensitive matching.
+/// Represents a normalized structure identifier for case-insensitive matching.
 let normalizeStructureIdentifier (value: string) =
     value.Trim().ToUpperInvariant()
 
-/// Checks whether a detached structure projection should be treated as BODY.
-let isBodyStructure (structureContext: EsapiStructureLike) =
-    normalizeStructureIdentifier structureContext.StructureId = "BODY"
+/// Represents whether a structure identifier matches BODY.
+let isBodyStructureId (structureId: string) =
+    normalizeStructureIdentifier structureId = "BODY"
 
-/// Checks whether a detached structure projection looks like a couch surface candidate.
-let isCouchSurfaceStructure (structureContext: EsapiStructureLike) =
-    let identifiers =
-        [
-            structureContext.StructureId
-            structureContext.DisplayName |> Option.defaultValue String.Empty
-        ]
-        |> List.map normalizeStructureIdentifier
+/// Represents whether a pair of structure identifiers looks like a couch surface.
+let looksLikeCouchSurfaceIdentifier (structureId: string) (displayName: string option) =
+    [ structureId; displayName |> Option.defaultValue String.Empty ]
+    |> List.map normalizeStructureIdentifier
+    |> List.exists (fun identifier -> identifier = "COUCHSURFACE" || identifier.Contains "COUCH")
 
-    identifiers
-    |> List.exists (fun identifier -> identifier.Contains "COUCH")
+/// Represents the currently loaded patient when it exists.
+let validatePatient (ctx: ExportContext) : Result<Patient, string> =
+    if isNull ctx.ScriptContext.Patient then
+        Error "No patient is currently loaded."
+    else
+        Ok ctx.ScriptContext.Patient
 
-/// Validates that a patient value is present and returns it.
-let validatePatient (ctx: ExportContext) : Result<string, string> =
-    validateRequiredText "No patient is currently loaded." ctx.PatientId
+/// Represents the currently loaded course when it exists.
+let validateCourse (ctx: ExportContext) : Result<Course, string> =
+    if isNull ctx.ScriptContext.Course then
+        Error "No course is currently loaded."
+    else
+        Ok ctx.ScriptContext.Course
 
-/// Validates that a course value is present and returns it.
-let validateCourse (ctx: ExportContext) : Result<string, string> =
-    validateRequiredText "No course is currently loaded." ctx.CourseId
+/// Represents the currently loaded plan when it exists.
+let validatePlan (ctx: ExportContext) : Result<PlanSetup, string> =
+    if isNull ctx.ScriptContext.PlanSetup then
+        Error "No plan is currently loaded."
+    else
+        Ok ctx.ScriptContext.PlanSetup
 
-/// Validates that a plan value is present and returns it.
-let validatePlan (ctx: ExportContext) : Result<EsapiPlanLike, string> =
-    match ctx.PlanContext with
-    | Some planContext -> Ok planContext
-    | None -> Error "No plan is currently loaded."
+/// Represents the currently loaded structure set when it exists.
+let validateStructureSet (ctx: ExportContext) : Result<StructureSet, string> =
+    if isNull ctx.ScriptContext.StructureSet then
+        Error "No structure set is currently loaded."
+    else
+        Ok ctx.ScriptContext.StructureSet
 
-/// Validates that a structure-set value is present and returns it.
-let validateStructureSet (ctx: ExportContext) : Result<EsapiStructureSetLike, string> =
-    match ctx.StructureSetContext with
-    | Some structureSetContext -> Ok structureSetContext
-    | None -> Error "No structure set is currently loaded."
-
-/// Validates that a BODY structure value is present and returns it.
-let validateBody (_ctx: ExportContext) (structureSet: EsapiStructureSetLike) : Result<EsapiStructureLike, string> =
+/// Represents the BODY structure when it can be found in the current structure set.
+let validateBody (_ctx: ExportContext) (structureSet: StructureSet) : Result<Structure, string> =
     structureSet.Structures
-    |> List.tryFind isBodyStructure
+    |> Seq.tryFind (fun structure -> isBodyStructureId structure.Id)
     |> function
-        | Some bodyStructure -> Ok bodyStructure
+        | Some body -> Ok body
         | None -> Error "BODY structure was not found."
 
-/// Tries to find an optional couch-surface structure without failing validation.
-let tryFindOptionalCouchSurface (_ctx: ExportContext) (structureSet: EsapiStructureSetLike) =
+/// Represents the optional couch-surface structure when it can be found in the current structure set.
+let tryFindOptionalCouchSurface (_ctx: ExportContext) (structureSet: StructureSet) =
     structureSet.Structures
-    |> List.tryFind (fun structureContext -> isBodyStructure structureContext |> not && isCouchSurfaceStructure structureContext)
+    |> Seq.tryFind (fun structure ->
+        isBodyStructureId structure.Id |> not
+        && looksLikeCouchSurfaceIdentifier structure.Id (Some structure.Name))
 
-/// Validates that at least one treatment beam is present and returns the list.
-let validateTreatmentBeams (_ctx: ExportContext) (plan: EsapiPlanLike) : Result<EsapiBeamLike list, string> =
-    let treatmentBeams = plan.Beams |> List.filter (fun beamContext -> not beamContext.IsSetupField)
+/// Represents the treatment beams after setup fields have been filtered out.
+let validateTreatmentBeams (_ctx: ExportContext) (plan: PlanSetup) : Result<Beam list, string> =
+    let treatmentBeams =
+        plan.Beams
+        |> Seq.filter (fun beam -> not beam.IsSetupField)
+        |> Seq.toList
 
     match treatmentBeams with
     | [] -> Error "No treatment beams were supplied."
     | beams -> Ok beams
 
-/// Resolves explicit or default sampling settings for the export request.
+/// Represents the resolved sampling settings for one export request.
 let resolveSamplingSettings (ctx: ExportContext) =
     ctx.SamplingSettings |> Option.defaultValue defaultSamplingSettings
 
-/// Validates the full ESAPI export context and collects all missing required inputs in one pass.
+/// Represents the full validated ESAPI export context after all missing-entity checks succeed.
 let validateContext (ctx: ExportContext) : Result<ValidatedEsapiContext, string list> =
     let errors = ResizeArray<string>()
 
     let patient =
         match validatePatient ctx with
-        | Ok patientId -> Some patientId
+        | Ok value -> Some value
         | Error error ->
             errors.Add error
             None
 
     let course =
         match validateCourse ctx with
-        | Ok courseId -> Some courseId
+        | Ok value -> Some value
         | Error error ->
             errors.Add error
             None
 
     let plan =
         match validatePlan ctx with
-        | Ok planContext -> Some planContext
+        | Ok value -> Some value
         | Error error ->
             errors.Add error
             None
 
     let structureSet =
         match validateStructureSet ctx with
-        | Ok structureSetContext -> Some structureSetContext
+        | Ok value -> Some value
         | Error error ->
             errors.Add error
             None
 
     let body =
         match structureSet with
-        | Some structureSetContext ->
-            match validateBody ctx structureSetContext with
-            | Ok bodyContext -> Some bodyContext
+        | Some value ->
+            match validateBody ctx value with
+            | Ok structure -> Some structure
             | Error error ->
                 errors.Add error
                 None
@@ -153,18 +152,19 @@ let validateContext (ctx: ExportContext) : Result<ValidatedEsapiContext, string 
 
     let treatmentBeams =
         match plan with
-        | Some planContext ->
-            match validateTreatmentBeams ctx planContext with
-            | Ok beamContexts -> Some beamContexts
+        | Some value ->
+            match validateTreatmentBeams ctx value with
+            | Ok beams -> Some beams
             | Error error ->
                 errors.Add error
                 None
         | None -> None
 
     if errors.Count > 0 then
-        Error (List.ofSeq errors)
+        Error (errors |> Seq.toList)
     else
         Ok {
+            ScriptContext = ctx.ScriptContext
             Patient = patient.Value
             Course = course.Value
             Plan = plan.Value

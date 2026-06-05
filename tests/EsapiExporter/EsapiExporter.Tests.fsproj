@@ -7,12 +7,26 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
   </PropertyGroup>
+  <PropertyGroup>
+    <EsapiReferenceDir Condition="Exists('C:\Users\etav0001\Downloads\CollisionAvoidance-First-branch\CollisionAvoidance-First-branch\Esapi18\VMS.TPS.Common.Model.API.dll')">C:\Users\etav0001\Downloads\CollisionAvoidance-First-branch\CollisionAvoidance-First-branch\Esapi18</EsapiReferenceDir>
+    <EsapiReferenceDir Condition="'$(EsapiReferenceDir)' == '' and Exists('C:\Program Files (x86)\Varian\RTM\18.1\esapi\API\VMS.TPS.Common.Model.API.dll')">C:\Program Files (x86)\Varian\RTM\18.1\esapi\API</EsapiReferenceDir>
+  </PropertyGroup>
   <ItemGroup>
     <None Include="paket.references" />
     <Compile Include="EsapiExporter.Tests.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src-Esapi\CollisionAvoidance.EsapiExporter\CollisionAvoidance.EsapiExporter.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="PresentationCore" />
+    <Reference Include="VMS.TPS.Common.Model.API">
+      <HintPath>$(EsapiReferenceDir)\VMS.TPS.Common.Model.API.dll</HintPath>
+    </Reference>
+    <Reference Include="VMS.TPS.Common.Model.Types">
+      <HintPath>$(EsapiReferenceDir)\VMS.TPS.Common.Model.Types.dll</HintPath>
+    </Reference>
+    <Reference Include="WindowsBase" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
