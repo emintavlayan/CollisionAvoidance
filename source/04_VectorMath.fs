@@ -19,6 +19,13 @@ module VMS.TPS.VectorMath
 
 open VMS.TPS.Common.Model.Types
 
+[<Measure>]
+type mm
+
+let mmConv = function x -> x * 1.0<mm>
+let mmFrom = function x -> x / 1.0<mm>
+
+
 /// Adds two VVector instances component-wise.
 let inline vadd (a : VVector) (b : VVector) =
     a + b

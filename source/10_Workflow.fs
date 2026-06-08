@@ -4,6 +4,7 @@ open VMS.TPS.Common.Model.API
 open VMS.TPS.Common.Model.Types
 open FsToolkit.ErrorHandling
 open VMS.TPS.ContextRetrievalSafe
+open VMS.TPS.VectorMath
 open VMS.TPS.DiskCreation
 open VMS.TPS.PointInVolumeCheck
 open VMS.TPS.DebugHelpers
@@ -75,7 +76,12 @@ let createSliceAndDiskPointsFromBeams
         |> Array.toList)
 
 
-let plotting (disk : VVector list) (mesh : MeshGeometry3D) (mesh2 : MeshGeometry3D) (hull : VVector list)=
+let plotting 
+    (disk : VVector list) 
+    (mesh : MeshGeometry3D) 
+    (mesh2 : MeshGeometry3D) 
+    (hull : VVector list)
+    =
     let perimeter = disk |> List.tail
 
     // Helpers to split VVector list into x/y/z arrays
@@ -121,7 +127,8 @@ let plotting (disk : VVector list) (mesh : MeshGeometry3D) (mesh2 : MeshGeometry
         )
 
     // Combine and style
-    [ diskTrace; mesh3d; mesh23d; HullTrace]
+    //[ diskTrace; mesh3d; mesh23d; HullTrace]
+    [ diskTrace; mesh3d; mesh23d]
     |> Chart.combine
     |> Chart.withTitle "Test"
     |> Chart.withSize(1800,1000)
@@ -140,14 +147,13 @@ let plotting (disk : VVector list) (mesh : MeshGeometry3D) (mesh2 : MeshGeometry
 
 
 
-
 // WIP:
 //errors in tryFindStructure replaced with just a warning
 //if all are none return error
 let findBodyStructures
     (structureSet : StructureSet)
     (includeVacfix : bool)
-    (structureNames : string[] )
+    (structureNames : string[])
     : Map<string,SnapshotVolume>
     =
     structureNames 
@@ -221,25 +227,25 @@ let runCollisionCheckWorkflow
         let diskPoints = 
             plan
             |> getTreatmentBeams
-            |> createSliceAndDiskPointsFromBeams 550.0<mm> 5.0<mm> 390.0<mm>
+            |> createSliceAndDiskPointsFromBeams 550.0<mm> 10.0<mm> 390.0<mm>
 
         
         //test filtering of points
-        let test = 
+        let bodyMeshValue = 
             bodyMesh
             |> BodyMeshSnapshot.value
-        let testCouch = 
+        let couchMeshValue = 
             couchMesh
             |> BodyMeshSnapshot.value
 
         let stopWatch = System.Diagnostics.Stopwatch.StartNew()
         let filteredPoints = 
             diskPoints
-            |> hasCollisionWithStructureParallelFilter volume test
+            |> hasCollisionWithStructureParallelFilter volume bodyMeshValue
         stopWatch.Stop()
 
         showMessageBox ("All test took " + stopWatch.Elapsed.TotalMilliseconds.ToString() + " ms. for " + diskPoints.Length.ToString() + " points.")
-        showMessageBox("Calculates" + (int((float diskPoints.Length)/stopWatch.Elapsed.TotalMilliseconds)).ToString() + "points pr second")
+        showMessageBox("Calculates " + (int((float diskPoints.Length)/stopWatch.Elapsed.TotalMilliseconds)).ToString() + " points pr second")
 
         let gaps = gapBCVolume mapOfVolumes.["BODY"] mapOfVolumes.["COUCHSURFACE"]
         
@@ -257,8 +263,11 @@ let runCollisionCheckWorkflow
             |>Array.toList
 
         
-        if not filteredPoints.IsEmpty then
-            plotting filteredPoints test testCouch ConvexHullLoops
+        plotting diskPoints bodyMeshValue couchMeshValue ConvexHullLoops
+            //plotting filteredPoints bodyMeshValue couchMeshValue ConvexHullLoops
+
+        (*if not filteredPoints.IsEmpty then
+            plotting filteredPoints bodyMeshValue couchMeshValue ConvexHullLoops*)
 
         showMessageBox (diskPoints.Length.ToString() + " points generated")
         return!

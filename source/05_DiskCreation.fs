@@ -19,8 +19,7 @@ open VMS.TPS.Common.Model.Types
 open VMS.TPS.VectorMath
 open VMS.TPS.BeamGeometry
 
-[<Measure>]
-type mm
+
 
 /// Creates a circular disk orthogonal to the beam axis at a given offset from isocenter.
 /// Uses the line from isocenter → source as the axis; the disk lies in the plane
@@ -158,9 +157,9 @@ let generateHalfDiskOnBeamAxis
 
     let halfValue =
         if firstDisk then
-            System.Math.PI*1.5 + angle
+            System.Math.PI*1.5 - angle
         else
-            System.Math.PI*0.5 - angle
+            System.Math.PI*0.5 + angle
             
     let perimeterPoints =
         [ 0 .. pointsPerDisk ]
