@@ -12,13 +12,13 @@ open FSharp.Stats.Fitting
 
 
 
-//find couch maxy and body niny for a volume
+//find couch maxy and body miny for a volume
 let gapBCBB
     (body : SnapshotVolume) 
     (couch : SnapshotVolume) 
     : float<mm>
     =
-    mmConv (abs (body.bounds.min.y - couch.bounds.max.y)) 
+    mmConv (abs (body.bounds.max.y - couch.bounds.min.y)) 
 
 
 //find couch maxy and body miny distance for a slice
@@ -46,7 +46,7 @@ let gapBCVolume
         |> Array.map(fun z ->
             Array.find (fun slice -> mmConv slice.z = z) body.slices,
             Array.find (fun slice -> mmConv slice.z = z) couch.slices)
-        |> Array.map(fun (b, c) ->  mmConv (abs( b.bounds.maxY - c.bounds.minY)))
+        |> Array.map(fun (b, c) ->  mmConv (abs(b.bounds.maxY - c.bounds.minY)))
 
     let numbering = [|0 .. gap.Length - 1|]
 
@@ -107,17 +107,13 @@ let vacfixVolume
         bounds = vacfixBounds
     }
 
-//include breast board:
 
-//make a fit for the gap length
-//make a triangle based on the fit from zmin to zmax
-// set the y minimum value of the board bodyymin and maximum bodyymax
 let findBBSlice
     (z : float)
     (xmin : float)
     (xmax : float)
-    (ymin : float)
     (ymax : float)
+    (ymin : float)
     : AxialSlice
     =
     let BBSliceLoop = [|
@@ -139,29 +135,28 @@ let findBreastBoard
     (couch : SnapshotVolume)
     : SnapshotVolume
     =
-    let zBBmin = body.bounds.min[2]
-    let zBBmax = body.bounds.max[2]
+    let zBBmin = body.bounds.min[2] - 100.
+    let zBBmax = body.bounds.max[2] + 100. 
     let zPoints = [zBBmin .. body.sliceThickness .. zBBmax]
 
     let (index, z, gap) = 
         gapBCVolume body couch
         |> Array.unzip3
 
-    let fittingCoef = LinearRegression.fit(vector (Array.map mmFrom z ), vector (Array.map mmFrom gap),Method.SimpleLinear)
-    let fittedY = 
-        zPoints
-        |> List.map(fun x -> LinearRegression.predict(fittingCoef) x)
+    let fittingCoef = LinearRegression.fit(vector (Array.map mmFrom z ), vector (Array.map(fun g -> couch.bounds.min[1] - mmFrom g) gap),Method.SimpleLinear)
 
     let boardY =
-        fittedY
+        zPoints
+        |> List.map(fun x -> LinearRegression.predict fittingCoef x)
         |> List.map(fun y ->
             if y < body.bounds.min[1] then
                 body.bounds.min[1]
-            elif y < body.bounds.max[1] then
+            elif y > body.bounds.max[1] then
                 body.bounds.max[1]
             else
                 y
         )
+
     
     let slicesBB =
         (zPoints, boardY)

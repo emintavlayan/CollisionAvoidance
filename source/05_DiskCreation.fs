@@ -131,6 +131,7 @@ let generateHalfDiskOnBeamAxis
     (radius : float<mm>) // Radius of the disk
     (firstDisk : bool) // Statement on wether this is the first disk
     (angle : float) // The patient support angle for the beam
+    (clockwise : bool)
     : VVector list
     =
     // Calculate direction from isocenter to source
@@ -155,12 +156,23 @@ let generateHalfDiskOnBeamAxis
     let v2 =
         vnormalize (vcross dir v1)
 
+    let GantryAngle = atan((sqrt(dir.x**2. + dir.z**2.))/dir.y)
+
     let halfValue =
-        if firstDisk then
-            System.Math.PI*1.5 - angle
+        if clockwise then
+            if firstDisk then
+                System.Math.PI*1.5 - angle * cos GantryAngle 
+            else
+                System.Math.PI*0.5 + angle * cos GantryAngle  
         else
-            System.Math.PI*0.5 + angle
-            
+            if firstDisk then
+                System.Math.PI*1.5 + angle * cos GantryAngle  
+            else
+                System.Math.PI*0.5 - angle * cos GantryAngle 
+
+
+
+
     let perimeterPoints =
         [ 0 .. pointsPerDisk ]
         |> List.map (fun i ->
@@ -186,6 +198,7 @@ let generateHalfDiskWithInterior
     (resolution : float<mm>) // Approximate distance between points
     (firstDisk : bool) // Statement on wether this is the first disk
     (angle : float) // The patient support angle for the beam
+    (clockwise : bool)
     : VVector list
     =
     let radii = List.append [0.0<mm> .. resolution .. radius] [radius]
@@ -195,7 +208,7 @@ let generateHalfDiskWithInterior
         
     (radii, pointsPerDisk)
     ||> List.map2(fun r res ->
-        generateHalfDiskOnBeamAxis isocenter sourcePosition offset res r firstDisk angle)
+        generateHalfDiskOnBeamAxis isocenter sourcePosition offset res r firstDisk angle clockwise)
     |> List.concat
 
    
@@ -219,6 +232,8 @@ let generateSlicesAndHalfDisks
 
     let pointsPerLine = int (radius*2.0/resolution)
     
+    let clockwise = beam.GantryDirection.Equals GantryDirection.Clockwise
+
     let linePoints = 
         beamPositions
         |> Array.map (fun (iso, src) ->
@@ -228,7 +243,7 @@ let generateSlicesAndHalfDisks
     let diskPoints = 
         ([|Array.head(beamPositions); Array.last(beamPositions)|], [|true;false|])
         ||> Array.map2 (fun (iso, src) fst ->
-            generateHalfDiskWithInterior iso src offset radius resolution fst angleRadian
+            generateHalfDiskWithInterior iso src offset radius resolution fst angleRadian clockwise
             |> List.toArray)
     Array.append diskPoints linePoints
     
@@ -246,7 +261,7 @@ let generateSlicesAndHalfDisksRModified
     let rotation (points : VVector list) : VVector list =
         points
         |> List.map(fun vec -> VVector(vec.x * System.Math.Cos(angleRadian) - vec.z * System.Math.Sin(angleRadian), vec.y, vec.z * System.Math.Cos(angleRadian)+vec.x * System.Math.Sin(angleRadian)))
-
+    let clockwise = true
     let linePoints = 
         srcPositions
         |> Array.map (fun (iso, src) ->
@@ -257,7 +272,7 @@ let generateSlicesAndHalfDisksRModified
     let diskPoints = 
         ([|Array.head(srcPositions); Array.last(srcPositions)|], [|true;false|])
         ||> Array.map2 (fun (iso, src) fst ->
-            generateHalfDiskWithInterior iso src offset radius resolution fst angleRadian
+            generateHalfDiskWithInterior iso src offset radius resolution fst angleRadian clockwise
             //|> rotation
             |> List.toArray)
 

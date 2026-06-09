@@ -127,8 +127,8 @@ let plotting
         )
 
     // Combine and style
-    //[ diskTrace; mesh3d; mesh23d; HullTrace]
-    [ diskTrace; mesh3d; mesh23d]
+    [ diskTrace; mesh3d; mesh23d; HullTrace]
+    
     |> Chart.combine
     |> Chart.withTitle "Test"
     |> Chart.withSize(1800,1000)
@@ -264,10 +264,9 @@ let runCollisionCheckWorkflow
 
         
         plotting diskPoints bodyMeshValue couchMeshValue ConvexHullLoops
-            //plotting filteredPoints bodyMeshValue couchMeshValue ConvexHullLoops
-
-        (*if not filteredPoints.IsEmpty then
-            plotting filteredPoints bodyMeshValue couchMeshValue ConvexHullLoops*)
+            
+        //if not filteredPoints.IsEmpty then
+        //    plotting filteredPoints bodyMeshValue couchMeshValue VacfixLoop
 
         showMessageBox (diskPoints.Length.ToString() + " points generated")
         return!
