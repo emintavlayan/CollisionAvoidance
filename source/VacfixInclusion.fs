@@ -16,18 +16,18 @@ open FSharp.Stats.Fitting
 let gapBCBB
     (body : SnapshotVolume) 
     (couch : SnapshotVolume) 
-    : float<mm>
+    : float
     =
-    mmConv (abs (body.bounds.max.y - couch.bounds.min.y)) 
+    abs (body.bounds.max.y - couch.bounds.min.y) 
 
 
 //find couch maxy and body miny distance for a slice
 let gapBCSlice
     (bodySlice : AxialSlice)
     (couchSlice : AxialSlice)
-    : float<mm>
+    : float
     =
-    mmConv (abs (bodySlice.bounds.maxY - couchSlice.bounds.minY)) 
+    abs (bodySlice.bounds.maxY - couchSlice.bounds.minY) 
     
 
 let gapBCVolume
@@ -57,21 +57,21 @@ let gapBCVolume
 
 //add an axialslice for vacfix
 let vacfixSlice 
+    (extraHeigth : float<mm>)
+    (lm : float<mm>)
     (bodySlice : AxialSlice) 
     (couchSlice : AxialSlice)
     : AxialSlice
     =
     let gap = gapBCSlice bodySlice couchSlice
-    let extraHeigth = 80.<mm>
     
-    let h = gap + extraHeigth
-    let lm = 50.<mm>
+    let h = gap + float extraHeigth
     
     let vacfixSliceLoop = [|
-        VVector(bodySlice.bounds.minX - mmFrom lm, couchSlice.bounds.minY, bodySlice.z);
-        VVector(bodySlice.bounds.minX - mmFrom lm, couchSlice.bounds.minY - mmFrom h, bodySlice.z);
-        VVector(bodySlice.bounds.maxX + mmFrom lm, couchSlice.bounds.minY - mmFrom h, bodySlice.z);
-        VVector(bodySlice.bounds.maxX + mmFrom lm, couchSlice.bounds.minY, bodySlice.z)|]
+        VVector(bodySlice.bounds.minX - float lm, couchSlice.bounds.minY, bodySlice.z);
+        VVector(bodySlice.bounds.minX - float lm, couchSlice.bounds.minY - float h, bodySlice.z);
+        VVector(bodySlice.bounds.maxX + float lm, couchSlice.bounds.minY - float h, bodySlice.z);
+        VVector(bodySlice.bounds.maxX + float lm, couchSlice.bounds.minY, bodySlice.z)|]
 
     let vacfixSliceBounds = computeBoundingBox2D vacfixSliceLoop
     {
@@ -83,6 +83,8 @@ let vacfixSlice
 
 //add a volume of vacfix
 let vacfixVolume
+    (extraHeigth : float<mm>)
+    (lm : float<mm>)
     (body : SnapshotVolume)
     (couch : SnapshotVolume)
     : SnapshotVolume
@@ -98,7 +100,7 @@ let vacfixVolume
         |> Array.map(fun z -> (
             Array.find (fun b -> b.z = z) body.slices,
             Array.find (fun c -> c.z = z) couch.slices ))
-        |> Array.map(fun(b, c) -> vacfixSlice b c)
+        |> Array.map(fun(b, c) -> vacfixSlice extraHeigth lm b c)
 
     let vacfixBounds = computeBoundingBox3D vacficSlices
     {

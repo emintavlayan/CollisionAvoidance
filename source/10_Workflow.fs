@@ -164,8 +164,13 @@ let findBodyStructures
     |> Map.ofArray
     |> fun volumeMap ->
         if includeVacfix && volumeMap.ContainsKey "BODY"  && volumeMap.ContainsKey "COUCHSURFACE" then
+            let extraheight = 80.0<mm>
+            let lm = 80.0<mm>
+            
             let volumeVacfix = 
-                vacfixVolume 
+                vacfixVolume
+                    extraheight
+                    lm
                     volumeMap.["BODY"]
                     volumeMap.["COUCHSURFACE"]
 
