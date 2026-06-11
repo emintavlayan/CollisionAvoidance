@@ -33,20 +33,20 @@ let gapBCSlice
 let gapBCVolume
     (body : SnapshotVolume) 
     (couch : SnapshotVolume) 
-    : (int*float<mm>*float<mm>) array
+    : (int*float*float) array
     =
     let zOverlapping =
         body.slices
-        |> Array.map(fun p -> mmConv p.z)
+        |> Array.map(fun p -> p.z)
         |> Array.filter (fun z -> 
-            Array.contains z (couch.slices |> Array.map(fun p -> mmConv p.z)))
+            Array.contains z (couch.slices |> Array.map(fun p -> p.z)))
         
     let gap =
         zOverlapping
         |> Array.map(fun z ->
-            Array.find (fun slice -> mmConv slice.z = z) body.slices,
-            Array.find (fun slice -> mmConv slice.z = z) couch.slices)
-        |> Array.map(fun (b, c) ->  mmConv (abs(b.bounds.maxY - c.bounds.minY)))
+            Array.find (fun slice -> slice.z = z) body.slices,
+            Array.find (fun slice -> slice.z = z) couch.slices)
+        |> Array.map(fun (b, c) ->   (abs(b.bounds.maxY - c.bounds.minY)))
 
     let numbering = [|0 .. gap.Length - 1|]
 
@@ -79,7 +79,7 @@ let vacfixSlice
         loop = vacfixSliceLoop
         bounds = vacfixSliceBounds
     }
-
+    
 
 //add a volume of vacfix
 let vacfixVolume
@@ -143,7 +143,7 @@ let findBreastBoard
         gapBCVolume body couch
         |> Array.unzip3
 
-    let fittingCoef = LinearRegression.fit(vector (Array.map mmFrom z ), vector (Array.map(fun g -> couch.bounds.min[1] - mmFrom g) gap),Method.SimpleLinear)
+    let fittingCoef = LinearRegression.fit(vector z, vector (Array.map(fun g -> couch.bounds.min[1] - g) gap),Method.SimpleLinear)
 
     let boardY =
         zPoints

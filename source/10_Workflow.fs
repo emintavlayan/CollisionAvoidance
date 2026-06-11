@@ -249,6 +249,11 @@ let runCollisionCheckWorkflow
 
         let gaps = gapBCVolume mapOfVolumes.["BODY"] mapOfVolumes.["COUCHSURFACE"]
         
+        let wr = new System.IO.StreamWriter("//rghrhariafil/Radiofysik/Personlig/Nicklas/Test.csv")
+        let tester = gaps |> Array.map(fun (i, z, g) -> string(i) + ";" + string(z) + ";" + string(g) + "\n") |> String.concat(" ") 
+        tester|> wr.Write
+        wr.Close()
+        
 
         let ConvexHullLoops = 
             volume.slices
@@ -274,3 +279,4 @@ let runCollisionCheckWorkflow
             |> BodyMeshSnapshot.value
             |> checkDiskPointsAgainstStructure volume diskPoints
     } 
+
