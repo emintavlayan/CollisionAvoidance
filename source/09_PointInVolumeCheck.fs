@@ -15,6 +15,14 @@ open VMS.TPS.StructureSnapshot
 let isInsideBoundingBoxOfMesh (structureMesh : System.Windows.Media.Media3D.MeshGeometry3D) (point : VVector) : bool =
     structureMesh.Bounds.Contains(point.x, point.y, point.z)
 
+let isInsideBoundingBoxOfVolume (volume : SnapshotVolume) (point : VVector) : bool =
+    point.x >= volume.bounds.min[0]
+    && point.x <= volume.bounds.max[0]
+    && point.y >= volume.bounds.min[1]
+    && point.y <= volume.bounds.max[1]
+    && point.z >= volume.bounds.min[2]
+    && point.z <= volume.bounds.max[2]
+
 
 /// Performs horizontal Ray casting 2D point-in-polygon test.
 /// Uses a `mutable` accumulator (`inside`) for performance.
@@ -69,14 +77,13 @@ let isPointInside
 /// Checks if any of the given points lies within a mesh
 let hasCollisionWithStructure
     (volume : SnapshotVolume)
-    (structureMesh : System.Windows.Media.Media3D.MeshGeometry3D)
     (diskPoints : VVector list)
     : bool
     =
     let stopWatch = System.Diagnostics.Stopwatch.StartNew()
     let collision =
         diskPoints
-        |> Seq.filter (isInsideBoundingBoxOfMesh structureMesh)
+        |> Seq.filter (isInsideBoundingBoxOfVolume volume)
         |> Seq.exists (isPointInside volume)
     // Seq exists is Lazy : if it finds one it does not calculate other
     stopWatch.Stop()
@@ -87,7 +94,6 @@ let hasCollisionWithStructure
 /// parallelized version
 let hasCollisionWithStructureParallel
     (volume : SnapshotVolume)
-    (structureMesh : System.Windows.Media.Media3D.MeshGeometry3D)
     (diskPoints : VVector list)
     : bool
     =
@@ -95,7 +101,7 @@ let hasCollisionWithStructureParallel
     let stopWatch = System.Diagnostics.Stopwatch.StartNew()
     let collision =
         diskPoints
-        |> PSeq.filter (isInsideBoundingBoxOfMesh structureMesh)
+        |> PSeq.filter (isInsideBoundingBoxOfVolume volume)
         |> PSeq.exists (isPointInside volume)
     // Seq exists is Lazy : if it finds one it does not calculate other
     stopWatch.Stop()
@@ -105,13 +111,12 @@ let hasCollisionWithStructureParallel
 
 let hasCollisionWithStructureParallelFilter
     (volume : SnapshotVolume)
-    (structureMesh : System.Windows.Media.Media3D.MeshGeometry3D)
     (diskPoints : VVector list)
     : VVector list
     =
     let collision =
         diskPoints
-        |> PSeq.filter (isInsideBoundingBoxOfMesh structureMesh)
+        |> PSeq.filter (isInsideBoundingBoxOfVolume volume)
         |> PSeq.filter (isPointInside volume)
         |> PSeq.toList
     // Seq exists is Lazy : if it finds one it does not calculate other
@@ -121,13 +126,12 @@ let hasCollisionWithStructureParallelFilter
 let checkDiskPointsAgainstStructure
     (volume : SnapshotVolume)
     (diskPoints : VVector list)
-    (structureMesh : System.Windows.Media.Media3D.MeshGeometry3D)
     : Result<string, string>
     =
   
     result {
         return!
-            match hasCollisionWithStructureParallel volume structureMesh diskPoints with
+            match hasCollisionWithStructureParallel volume diskPoints with
             | true ->
                 Error "Collision detected. At least one point is inside BODY."
 

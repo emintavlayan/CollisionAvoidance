@@ -12,7 +12,7 @@ open FSharp.Stats.Fitting
 
 
 
-//find couch maxy and body miny for a volume
+/// Finds gap between the bounding boxes of body and couch
 let gapBCBB
     (body : SnapshotVolume) 
     (couch : SnapshotVolume) 
@@ -21,7 +21,7 @@ let gapBCBB
     abs (body.bounds.max.y - couch.bounds.min.y) 
 
 
-//find couch maxy and body miny distance for a slice
+/// Finds the gap between the AxialSlice of body and couch
 let gapBCSlice
     (bodySlice : AxialSlice)
     (couchSlice : AxialSlice)
@@ -29,11 +29,11 @@ let gapBCSlice
     =
     abs (bodySlice.bounds.maxY - couchSlice.bounds.minY) 
     
-
+/// Returns an array containing the z value and gap for all AxialSclices in body and couch
 let gapBCVolume
     (body : SnapshotVolume) 
     (couch : SnapshotVolume) 
-    : (int*float*float) array
+    : (float*float) array
     =
     let zOverlapping =
         body.slices
@@ -48,14 +48,11 @@ let gapBCVolume
             Array.find (fun slice -> slice.z = z) couch.slices)
         |> Array.map(fun (b, c) ->   (abs(b.bounds.maxY - c.bounds.minY)))
 
-    let numbering = [|0 .. gap.Length - 1|]
-
     Array.zip zOverlapping gap
     |> Array.sortBy(fun (z, gap) -> z)
-    |> Array.unzip
-    ||> Array.zip3 numbering
 
-//add an axialslice for vacfix
+
+/// Generates an axialslice of vacfix for given body and couch
 let vacfixSlice 
     (extraHeigth : float<mm>)
     (lm : float<mm>)
@@ -81,7 +78,7 @@ let vacfixSlice
     }
     
 
-//add a volume of vacfix
+/// Generates the volume of vacfix
 let vacfixVolume
     (extraHeigth : float<mm>)
     (lm : float<mm>)
@@ -109,7 +106,7 @@ let vacfixVolume
         bounds = vacfixBounds
     }
 
-
+/// Generates a rectangular Axialslice from the given parameters
 let findBBSlice
     (z : float)
     (xmin : float)
@@ -131,7 +128,7 @@ let findBBSlice
         bounds =  bounds
     }
 
-
+/// Generated the breastboard between the body and couch by fitting to the gap between the two
 let findBreastBoard
     (body : SnapshotVolume)
     (couch : SnapshotVolume)
@@ -141,9 +138,9 @@ let findBreastBoard
     let zBBmax = body.bounds.max[2] + 100. 
     let zPoints = [zBBmin .. body.sliceThickness .. zBBmax]
 
-    let (index, z, gap) = 
+    let (z, gap) = 
         gapBCVolume body couch
-        |> Array.unzip3
+        |> Array.unzip
 
     let fittingCoef = LinearRegression.fit(vector z, vector (Array.map(fun g -> couch.bounds.min[1] - g) gap),Method.SimpleLinear)
 

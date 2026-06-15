@@ -78,8 +78,8 @@ let createSliceAndDiskPointsFromBeams
 
 let plotting 
     (disk : VVector list) 
-    (mesh : MeshGeometry3D) 
-    (mesh2 : MeshGeometry3D) 
+    (body : MeshGeometry3D) 
+    (couch : MeshGeometry3D) 
     (hull : VVector list)
     =
     let perimeter = disk |> List.tail
@@ -91,21 +91,21 @@ let plotting
 
     let zs (pts: VVector list) = pts |> List.map (fun p -> p.z)
 
-    let meshx = [0 .. mesh.Positions.Count - 1] |> List.map(fun i -> mesh.Positions[i].X)
-    let meshy = [0 .. mesh.Positions.Count - 1] |> List.map(fun i -> mesh.Positions[i].Y)
-    let meshz = [0 .. mesh.Positions.Count - 1] |> List.map(fun i -> mesh.Positions[i].Z)
-    let meshi = [0 .. mesh.TriangleIndices.Count/3 - 1] |> List.map(fun i -> mesh.TriangleIndices[i * 3])
-    let meshj = [0 .. mesh.TriangleIndices.Count/3 - 1] |> List.map(fun i -> mesh.TriangleIndices[i * 3 + 1])
-    let meshk = [0 .. mesh.TriangleIndices.Count/3 - 1] |> List.map(fun i -> mesh.TriangleIndices[i * 3 + 2])
-    let mesh3d = Chart.Mesh3D(x = meshx, y = meshy, z = meshz, I = meshi, J = meshj, K = meshk, Opacity = 1)
+    let bodyx = [0 .. body.Positions.Count - 1] |> List.map(fun i -> body.Positions[i].X)
+    let bodyy = [0 .. body.Positions.Count - 1] |> List.map(fun i -> body.Positions[i].Y)
+    let bodyz = [0 .. body.Positions.Count - 1] |> List.map(fun i -> body.Positions[i].Z)
+    let bodyi = [0 .. body.TriangleIndices.Count/3 - 1] |> List.map(fun i -> body.TriangleIndices[i * 3])
+    let bodyj = [0 .. body.TriangleIndices.Count/3 - 1] |> List.map(fun i -> body.TriangleIndices[i * 3 + 1])
+    let bodyk = [0 .. body.TriangleIndices.Count/3 - 1] |> List.map(fun i -> body.TriangleIndices[i * 3 + 2])
+    let body3d = Chart.Mesh3D(x = bodyx, y = bodyy, z = bodyz, I = bodyi, J = bodyj, K = bodyk, Opacity = 0.75, Name = "BODY", Color = Color.fromKeyword Tan)
     
-    let mesh2x = [0 .. mesh2.Positions.Count - 1] |> List.map(fun i -> mesh2.Positions[i].X)
-    let mesh2y = [0 .. mesh2.Positions.Count - 1] |> List.map(fun i -> mesh2.Positions[i].Y)
-    let mesh2z = [0 .. mesh2.Positions.Count - 1] |> List.map(fun i -> mesh2.Positions[i].Z)
-    let mesh2i = [0 .. mesh2.TriangleIndices.Count/3 - 1] |> List.map(fun i -> mesh2.TriangleIndices[i * 3])
-    let mesh2j = [0 .. mesh2.TriangleIndices.Count/3 - 1] |> List.map(fun i -> mesh2.TriangleIndices[i * 3 + 1])
-    let mesh2k = [0 .. mesh2.TriangleIndices.Count/3 - 1] |> List.map(fun i -> mesh2.TriangleIndices[i * 3 + 2])
-    let mesh23d = Chart.Mesh3D(x = mesh2x, y = mesh2y, z = mesh2z, I = mesh2i, J = mesh2j, K = mesh2k, Opacity = 1)
+    let couchx = [0 .. couch.Positions.Count - 1] |> List.map(fun i -> couch.Positions[i].X)
+    let couchy = [0 .. couch.Positions.Count - 1] |> List.map(fun i -> couch.Positions[i].Y)
+    let couchz = [0 .. couch.Positions.Count - 1] |> List.map(fun i -> couch.Positions[i].Z)
+    let couchi = [0 .. couch.TriangleIndices.Count/3 - 1] |> List.map(fun i -> couch.TriangleIndices[i * 3])
+    let couchj = [0 .. couch.TriangleIndices.Count/3 - 1] |> List.map(fun i -> couch.TriangleIndices[i * 3 + 1])
+    let couchk = [0 .. couch.TriangleIndices.Count/3 - 1] |> List.map(fun i -> couch.TriangleIndices[i * 3 + 2])
+    let couch3d = Chart.Mesh3D(x = couchx, y = couchy, z = couchz, I = couchi, J = couchj, K = couchk, Opacity = 1, Name = "Couch", Color = Color.fromKeyword Magenta)
     
     // Traces: disk perimeter (line), disk center (marker), iso/src points (markers)
     let diskTrace =
@@ -123,11 +123,12 @@ let plotting
             y = ys hull,
             z = zs hull,
             mode = Mode.Lines,
+            LineColor = Color.fromKeyword Green,
             Name = "Hull"
         )
 
     // Combine and style
-    [ diskTrace; mesh3d; mesh23d; HullTrace]
+    [ diskTrace; body3d; couch3d; HullTrace]
     
     |> Chart.combine
     |> Chart.withTitle "Test"
@@ -165,7 +166,7 @@ let findBodyStructures
     |> fun volumeMap ->
         if includeVacfix && volumeMap.ContainsKey "BODY"  && volumeMap.ContainsKey "COUCHSURFACE" then
             let extraheight = 80.0<mm>
-            let lm = 80.0<mm>
+            let lm = 50.0<mm>
             
             let volumeVacfix = 
                 vacfixVolume
@@ -235,7 +236,6 @@ let runCollisionCheckWorkflow
             |> createSliceAndDiskPointsFromBeams 550.0<mm> 10.0<mm> 390.0<mm>
 
         
-        //test filtering of points
         let bodyMeshValue = 
             bodyMesh
             |> BodyMeshSnapshot.value
@@ -246,7 +246,7 @@ let runCollisionCheckWorkflow
         let stopWatch = System.Diagnostics.Stopwatch.StartNew()
         let filteredPoints = 
             diskPoints
-            |> hasCollisionWithStructureParallelFilter volume bodyMeshValue
+            |> hasCollisionWithStructureParallelFilter volume
         stopWatch.Stop()
 
         showMessageBox ("All test took " + stopWatch.Elapsed.TotalMilliseconds.ToString() + " ms. for " + diskPoints.Length.ToString() + " points.")
@@ -254,10 +254,9 @@ let runCollisionCheckWorkflow
 
         let gaps = gapBCVolume mapOfVolumes.["BODY"] mapOfVolumes.["COUCHSURFACE"]
         
-        let wr = new System.IO.StreamWriter("//rghrhariafil/Radiofysik/Personlig/Nicklas/Test.csv")
-        let tester = gaps |> Array.map(fun (i, z, g) -> string(i) + ";" + string(z) + ";" + string(g) + "\n") |> String.concat(" ") 
-        tester|> wr.Write
-        wr.Close()
+        let gapData = new System.IO.StreamWriter("//rghrhariafil/Radiofysik/Personlig/Nicklas/Test.csv")
+        gaps |> Array.map(fun (z, g) -> string(z) + ";" + string(g) + "\n") |> Array.append [|"z;gap\n"|] |> String.concat(" ") |> gapData.Write
+        gapData.Close()
         
 
         let ConvexHullLoops = 
@@ -273,15 +272,15 @@ let runCollisionCheckWorkflow
             |>Array.toList
 
         
-        plotting diskPoints bodyMeshValue couchMeshValue ConvexHullLoops
+        //plotting diskPoints bodyMeshValue couchMeshValue VacfixLoop
             
-        //if not filteredPoints.IsEmpty then
-        //    plotting filteredPoints bodyMeshValue couchMeshValue VacfixLoop
+        if not filteredPoints.IsEmpty then
+            plotting filteredPoints bodyMeshValue couchMeshValue ConvexHullLoops
 
         showMessageBox (diskPoints.Length.ToString() + " points generated")
         return!
-            bodyMesh
-            |> BodyMeshSnapshot.value
-            |> checkDiskPointsAgainstStructure volume diskPoints
-    } 
+            checkDiskPointsAgainstStructure volume diskPoints
+    }
+
+
 
