@@ -94,7 +94,7 @@ let generateLineOnBeamAxis
     (offset : float<mm>) // Distance from isocenter along axis toward the source (+) or away (−)
     (pointsPerLine : int) // Number of points sampled on each line
     (length : float<mm>) // Length of the line
-    (angle : float) // The patient support angle for the beam
+    (patientAngleRadian : float) // The patient support angle for the beam
     =
     // Calculate direction from isocenter to source
     let dir =
@@ -113,7 +113,7 @@ let generateLineOnBeamAxis
                 float length * float i
                 / float pointsPerLine - float length / 2.0
 
-            let offsetVector = VVector(System.Math.Sin(angle)*linDis, 0.0, System.Math.Cos(angle)*linDis)
+            let offsetVector = VVector(System.Math.Sin(patientAngleRadian)*linDis, 0.0, System.Math.Cos(patientAngleRadian)*linDis)
 
                 
             lineCenter + offsetVector)
@@ -130,7 +130,7 @@ let generateHalfDiskOnBeamAxis
     (pointsPerDisk : int) // Number of points sampled on the disk perimeter
     (radius : float<mm>) // Radius of the disk
     (firstDisk : bool) // Statement on wether this is the first disk
-    (angle : float) // The patient support angle for the beam
+    (patientAngleRadian : float) // The patient support angle for the beam
     (clockwise : bool)
     : VVector list
     =
@@ -156,21 +156,17 @@ let generateHalfDiskOnBeamAxis
     let v2 =
         vnormalize (vcross dir v1)
 
-    let GantryAngle = atan((sqrt(dir.x**2. + dir.z**2.))/dir.y)
-
-    let halfValue =
+    let rotationValue =
         if clockwise then
             if firstDisk then
-                System.Math.PI*1.5 - angle * cos GantryAngle 
+                - System.Math.PI*0.5 - patientAngleRadian
             else
-                System.Math.PI*0.5 + angle * cos GantryAngle  
+                System.Math.PI*0.5 + patientAngleRadian 
         else
             if firstDisk then
-                System.Math.PI*1.5 + angle * cos GantryAngle  
+                - System.Math.PI*0.5 + patientAngleRadian  
             else
-                System.Math.PI*0.5 - angle * cos GantryAngle 
-
-
+                System.Math.PI*0.5 - patientAngleRadian 
 
 
     let perimeterPoints =
@@ -178,7 +174,7 @@ let generateHalfDiskOnBeamAxis
         |> List.map (fun i ->
             let angle =
                 System.Math.PI * float i
-                / float pointsPerDisk + halfValue
+                / float pointsPerDisk + rotationValue
 
             let offset =
                 vscale v1 (float radius * cos angle)
@@ -197,7 +193,7 @@ let generateHalfDiskWithInterior
     (radius : float<mm>) // Radius of the outer disk
     (resolution : float<mm>) // Approximate distance between points
     (firstDisk : bool) // Statement on wether this is the first disk
-    (angle : float) // The patient support angle for the beam
+    (patientAngleRadian : float) // The patient support angle for the beam
     (clockwise : bool)
     : VVector list
     =
@@ -208,7 +204,7 @@ let generateHalfDiskWithInterior
         
     (radii, pointsPerDisk)
     ||> List.map2(fun r res ->
-        generateHalfDiskOnBeamAxis isocenter sourcePosition offset res r firstDisk angle clockwise)
+        generateHalfDiskOnBeamAxis isocenter sourcePosition offset res r firstDisk patientAngleRadian clockwise)
     |> List.concat
 
    
@@ -224,7 +220,7 @@ let generateSlicesAndHalfDisks
 
     =
     let arcStep = (180./System.Math.PI)*(resolution/radius)
-    let angleRadian = System.Math.PI/180.*beam.ControlPoints[0].PatientSupportAngle
+    let patientAngleRadian = System.Math.PI/180.*beam.ControlPoints[0].PatientSupportAngle
    
     let beamPositions = 
         beam
@@ -237,13 +233,13 @@ let generateSlicesAndHalfDisks
     let linePoints = 
         beamPositions
         |> Array.map (fun (iso, src) ->
-            generateLineOnBeamAxis iso src offset pointsPerLine (radius*2.0) angleRadian
+            generateLineOnBeamAxis iso src offset pointsPerLine (radius*2.0) patientAngleRadian
             |> List.toArray)
 
     let diskPoints = 
         ([|Array.head(beamPositions); Array.last(beamPositions)|], [|true;false|])
         ||> Array.map2 (fun (iso, src) fst ->
-            generateHalfDiskWithInterior iso src offset radius resolution fst angleRadian clockwise
+            generateHalfDiskWithInterior iso src offset radius resolution fst patientAngleRadian clockwise
             |> List.toArray)
     Array.append diskPoints linePoints
     
@@ -254,25 +250,25 @@ let generateSlicesAndHalfDisksRModified
     (offset : float<mm>) // Distance from isocenter along the beam axis for each disk
     (resolution : float<mm>) // Approximate distance between points
     (radius : float<mm>) //Radius of the generated disks
-    (angleRadian : float)
+    (patientAngleRadian : float)
     =
     let pointsPerLine = int (radius*2.0/resolution)
 
     let rotation (points : VVector list) : VVector list =
         points
-        |> List.map(fun vec -> VVector(vec.x * System.Math.Cos(angleRadian) - vec.z * System.Math.Sin(angleRadian), vec.y, vec.z * System.Math.Cos(angleRadian)+vec.x * System.Math.Sin(angleRadian)))
+        |> List.map(fun vec -> VVector(vec.x * System.Math.Cos(patientAngleRadian) - vec.z * System.Math.Sin(patientAngleRadian), vec.y, vec.z * System.Math.Cos(patientAngleRadian)+vec.x * System.Math.Sin(patientAngleRadian)))
     let clockwise = true
     let linePoints = 
         srcPositions
         |> Array.map (fun (iso, src) ->
-            generateLineOnBeamAxis iso src offset pointsPerLine (radius*2.0) angleRadian
+            generateLineOnBeamAxis iso src offset pointsPerLine (radius*2.0) patientAngleRadian
             //|> rotation
             |> List.toArray)
 
     let diskPoints = 
         ([|Array.head(srcPositions); Array.last(srcPositions)|], [|true;false|])
         ||> Array.map2 (fun (iso, src) fst ->
-            generateHalfDiskWithInterior iso src offset radius resolution fst angleRadian clockwise
+            generateHalfDiskWithInterior iso src offset radius resolution fst patientAngleRadian clockwise
             //|> rotation
             |> List.toArray)
 

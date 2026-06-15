@@ -97,7 +97,7 @@ let plotting
     let bodyi = [0 .. body.TriangleIndices.Count/3 - 1] |> List.map(fun i -> body.TriangleIndices[i * 3])
     let bodyj = [0 .. body.TriangleIndices.Count/3 - 1] |> List.map(fun i -> body.TriangleIndices[i * 3 + 1])
     let bodyk = [0 .. body.TriangleIndices.Count/3 - 1] |> List.map(fun i -> body.TriangleIndices[i * 3 + 2])
-    let body3d = Chart.Mesh3D(x = bodyx, y = bodyy, z = bodyz, I = bodyi, J = bodyj, K = bodyk, Opacity = 0.75, Name = "BODY", Color = Color.fromKeyword Tan)
+    let body3d = Chart.Mesh3D(x = bodyx, y = bodyy, z = bodyz, I = bodyi, J = bodyj, K = bodyk, Opacity = 1, Name = "BODY", Color = Color.fromKeyword Tan)
     
     let couchx = [0 .. couch.Positions.Count - 1] |> List.map(fun i -> couch.Positions[i].X)
     let couchy = [0 .. couch.Positions.Count - 1] |> List.map(fun i -> couch.Positions[i].Y)
@@ -123,7 +123,7 @@ let plotting
             y = ys hull,
             z = zs hull,
             mode = Mode.Lines,
-            LineColor = Color.fromKeyword Green,
+            LineColor = Color.fromKeyword Yellow,
             Name = "Hull"
         )
 
@@ -272,15 +272,13 @@ let runCollisionCheckWorkflow
             |>Array.toList
 
         
-        //plotting diskPoints bodyMeshValue couchMeshValue VacfixLoop
+        plotting diskPoints bodyMeshValue couchMeshValue VacfixLoop
             
-        if not filteredPoints.IsEmpty then
-            plotting filteredPoints bodyMeshValue couchMeshValue ConvexHullLoops
+        //if not filteredPoints.IsEmpty then
+        //    plotting filteredPoints bodyMeshValue couchMeshValue ConvexHullLoops
 
         showMessageBox (diskPoints.Length.ToString() + " points generated")
         return!
             checkDiskPointsAgainstStructure volume diskPoints
     }
-
-
 
