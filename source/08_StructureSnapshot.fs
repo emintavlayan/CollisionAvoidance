@@ -49,6 +49,7 @@ type SnapshotVolume = {
     bounds : BoundingBox3D
 }
 
+
 /// Computes a 2D bounding box in the XY plane for a given contour loop.
 /// This is used to quickly rule out points that lie outside the slice contour.
 let computeBoundingBox2D (loop : VVector[]) : BoundingBox2D =
@@ -66,6 +67,7 @@ let computeBoundingBox2D (loop : VVector[]) : BoundingBox2D =
         minY = Array.min ys
         maxY = Array.max ys
     }
+
 
 /// Computes the 3D bounding box that encloses all points across all slices.
 /// Used as a fast global filter before performing expensive point-in-volume checks.
@@ -92,8 +94,9 @@ let computeBoundingBox3D (slices : AxialSlice[]) : BoundingBox3D =
         max = VVector(Array.max xs, Array.max ys, Array.max zs)
     }
 
-/// Extracts a thread-safe snapshot of a structure for parallel use
-/// Includes a global 3D bounding box and per-slice 2D bounding boxes
+
+/// Extracts a thread-safe snapshot of a structure for parallel use.
+/// Includes a global 3D bounding box and per-slice 2D bounding boxes.
 let extractSnapshotVolume
     (ss : StructureSet)
     (structure : Structure)
@@ -146,7 +149,6 @@ let extractSnapshotVolume
                 None)
         |> List.toArray
 
-
     let bounds =
         computeBoundingBox3D slices
 
@@ -157,12 +159,14 @@ let extractSnapshotVolume
     }
 
 
-
+/// Function for checking if three points are positioned clockwise in the xy plane.
 let clockwise (p1 : VVector) (p2 : VVector) (p3 : VVector) =
     (p2.x - p1.x) * (p3.y - p1.y)
     - (p2.y - p1.y) * (p3.x - p1.x)
     <= 0.0
 
+
+/// Adds the next point in candidates to hull or remove the last point in hull depending on rotation by adding the next candidate point.
 let rec chain (hull: VVector list) (candidates: VVector list) =
     match candidates with
     | [ ] -> hull
@@ -171,9 +175,13 @@ let rec chain (hull: VVector list) (candidates: VVector list) =
         | [ ] -> chain [ c ] rest
         | [ start ] -> chain [c ; start] rest
         | b :: a :: tail -> 
-            if clockwise a b c then chain (c :: hull) rest else
-            chain (a :: tail) candidates
+            if clockwise a b c then 
+                chain (c :: hull) rest 
+            else
+                chain (a :: tail) candidates
 
+
+/// Constructs the hull of a series of points in the xy plane.
 let hull (points: VVector list) =
     match points with
     | [ ] -> points
@@ -186,6 +194,8 @@ let hull (points: VVector list) =
         let lower = chain [ ] (List.rev sorted)
         List.append (List.tail upper) (List.tail lower)
 
+
+/// Finds the hull of a single AxialSlice element in its xy plane and returns the hull as an AxialSlice.
 let findHullOfSlice
     (slice : AxialSlice)
     : AxialSlice
@@ -202,6 +212,9 @@ let findHullOfSlice
         bounds = slice.bounds
     }
 
+
+/// Finds the hull of two AxialSlice elements in the xy plane and returns the hull as an AxialSlice. 
+/// Assumes same z value.
 let findHullOfTwoSlices
     (slice1 : AxialSlice)
     (slice2 : AxialSlice)
@@ -221,6 +234,8 @@ let findHullOfTwoSlices
         bounds = boundsHull
     }
 
+
+/// Finds the hull of each AxialSlice in a volume and constructs a new volume from the hulls
 let findHullOfVolume (volume : SnapshotVolume) : SnapshotVolume =
     let slicesHull =
         volume.slices
@@ -232,6 +247,9 @@ let findHullOfVolume (volume : SnapshotVolume) : SnapshotVolume =
         bounds = volume.bounds
     }
 
+
+/// Finds the combined hull of each AxialSlice element of two volumes and constructs a new volume from the hulls
+/// Slicethicness is assumed the same and z values are exact matches
 let findHullOfTwoVolumes
     (volume1 : SnapshotVolume)
     (volume2 : SnapshotVolume)

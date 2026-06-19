@@ -6,14 +6,9 @@ open VMS.TPS.Common.Model.Types
 open FsToolkit.ErrorHandling
 open FSharp.Collections.ParallelSeq
 open VMS.TPS.DebugHelpers
-open VMS.TPS.VectorMath
 open VMS.TPS.StructureSnapshot
 
 
-
-/// Checks if a given point lies inside the bounding box of the mesh
-let isInsideBoundingBoxOfMesh (structureMesh : System.Windows.Media.Media3D.MeshGeometry3D) (point : VVector) : bool =
-    structureMesh.Bounds.Contains(point.x, point.y, point.z)
 
 let isInsideBoundingBoxOfVolume (volume : SnapshotVolume) (point : VVector) : bool =
     point.x >= volume.bounds.min[0]
@@ -52,6 +47,7 @@ let isPointInPolygon2D (x : float) (y : float) (polygon : VVector[]) : bool =
 
     inside
 
+
 /// Finds the axial slice whose Z-slab contains the point.
 /// Assumes slices are sorted by z and use uniform spacing (slice thickness).
 let findSliceForZ (slices : AxialSlice[]) (spacing : float) (zPoint : float) =
@@ -62,6 +58,7 @@ let findSliceForZ (slices : AxialSlice[]) (spacing : float) (zPoint : float) =
     |> Array.tryFind (fun s ->
         zPoint >= (s.z - half)
         && zPoint < (s.z + half))
+
 
 /// Checks whether a point is inside the volume (fail-fast).
 /// Uses slice spacing to select the corresponding slab.
@@ -74,7 +71,8 @@ let isPointInside
     | Some slice -> isPointInPolygon2D point.x point.y slice.loop
     | None -> false
 
-/// Checks if any of the given points lies within a mesh
+
+/// Checks if any of the given points lies within a volume
 let hasCollisionWithStructure
     (volume : SnapshotVolume)
     (diskPoints : VVector list)
@@ -90,7 +88,8 @@ let hasCollisionWithStructure
     showMessageBox ("Collsision test took " + stopWatch.Elapsed.TotalMilliseconds.ToString() + " ms")
     collision
 
-/// Checks if any of the given points lies within a mesh.
+
+/// Checks if any of the given points lies within a volume.
 /// parallelized version
 let hasCollisionWithStructureParallel
     (volume : SnapshotVolume)
@@ -109,6 +108,7 @@ let hasCollisionWithStructureParallel
     collision
 
 
+/// Alternative collision check, returning filtered points inside volume
 let hasCollisionWithStructureParallelFilter
     (volume : SnapshotVolume)
     (diskPoints : VVector list)
@@ -123,6 +123,7 @@ let hasCollisionWithStructureParallelFilter
     collision
    
    
+/// Function for checking if any of the given set of points lies inside of the volume
 let checkDiskPointsAgainstStructure
     (volume : SnapshotVolume)
     (diskPoints : VVector list)

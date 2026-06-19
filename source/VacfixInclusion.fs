@@ -2,13 +2,10 @@
 
 open VMS.TPS.Common.Model.API
 open VMS.TPS.Common.Model.Types
-open VMS.TPS.DebugHelpers
 open VMS.TPS.VectorMath
 open VMS.TPS.StructureSnapshot
 open FSharp.Stats
 open FSharp.Stats.Fitting
-
-
 
 
 
@@ -28,6 +25,7 @@ let gapBCSlice
     : float
     =
     abs (bodySlice.bounds.maxY - couchSlice.bounds.minY) 
+
     
 /// Returns an array containing the z value and gap for all AxialSclices in body and couch
 let gapBCVolume
@@ -106,6 +104,7 @@ let vacfixVolume
         bounds = vacfixBounds
     }
 
+
 /// Generates a rectangular Axialslice from the given parameters
 let findBBSlice
     (z : float)
@@ -127,6 +126,7 @@ let findBBSlice
         loop = BBSliceLoop
         bounds =  bounds
     }
+
 
 /// Generated the breastboard between the body and couch by fitting to the gap between the two
 let findBreastBoard

@@ -16,7 +16,6 @@ open Plotly.NET
 open Plotly.NET.LayoutObjects
 open Plotly.NET.StyleParam
 open System.Linq
-open FSharp.Data
 
 
 /// Finds the structure in the current structure set
@@ -30,14 +29,6 @@ let tryFindStructure (structureName : string) (structureSet : StructureSet) : Re
         | None ->
             Error (structureName + " structure was not found.")
 
-/// Temporary function for findBodyStructures
-let tryFindStructure2 (structureName : string) (structureSet : StructureSet) : Structure option =
-    let structure =
-        structureSet.Structures
-        |> Seq.tryFind (fun s -> s.Id.ToUpperInvariant() = structureName)
-    if structure.IsNone then showMessageBox (structureName + " structure was not found.")
-    structure
-            
 
 /// Gets all treatment beams from the current plan
 let getTreatmentBeams (plan : PlanSetup) =
@@ -45,21 +36,8 @@ let getTreatmentBeams (plan : PlanSetup) =
     |> Seq.filter (fun beam -> not beam.IsSetupField)
     |> Seq.toList
 
-/// Creates a flat list of disk points from all treatment beams
-let createDiskPointsFromBeams
-    (arcStep : float)
-    (offset : float<mm>)
-    (pointsPerDisk : int)
-    (beams : Beam list)
-    : VVector list
-    =
 
-    beams
-    |> List.collect (fun beam ->
-        generateDisksForBeam beam arcStep offset pointsPerDisk
-        |> Array.collect id
-        |> Array.toList)
-
+/// Creates the points representing the linac for the given treatment beams
 let createSliceAndDiskPointsFromBeams
     //(arcStep : float)
     (offset : float<mm>)
@@ -68,7 +46,6 @@ let createSliceAndDiskPointsFromBeams
     (beams : Beam list)
     : VVector list
     =
-
     beams
     |> List.collect (fun beam ->
         generateSlicesAndHalfDisks beam offset resolution radius
@@ -76,11 +53,13 @@ let createSliceAndDiskPointsFromBeams
         |> Array.toList)
 
 
+/// Plotting function for help visualising element positioning
 let plotting 
     (disk : VVector list) 
     (body : MeshGeometry3D) 
     (couch : MeshGeometry3D) 
     (hull : VVector list)
+    (name : string)
     =
     let perimeter = disk |> List.tail
 
@@ -107,7 +86,6 @@ let plotting
     let couchk = [0 .. couch.TriangleIndices.Count/3 - 1] |> List.map(fun i -> couch.TriangleIndices[i * 3 + 2])
     let couch3d = Chart.Mesh3D(x = couchx, y = couchy, z = couchz, I = couchi, J = couchj, K = couchk, Opacity = 1, Name = "Couch", Color = Color.fromKeyword Magenta)
     
-    // Traces: disk perimeter (line), disk center (marker), iso/src points (markers)
     let diskTrace =
         Chart.Scatter3D(
             x = xs perimeter,
@@ -143,43 +121,72 @@ let plotting
     )
 
     //find proper way to save plot
-    |> Chart.saveHtml "//rghrhariafil/Radiofysik/Personlig/Nicklas/test"
-    //|> Chart.show
+    |> Chart.saveHtml ("//rghrhariafil/Radiofysik/Personlig/Nicklas/" + name)
 
 
-
-// WIP:
-//errors in tryFindStructure replaced with just a warning
-//if all are none return error
+/// Finds the structures of the given names. if any structure does not exist, returns an error
 let findBodyStructures
     (structureSet : StructureSet)
-    (includeVacfix : bool)
     (structureNames : string[])
+    : Result<Map<string,Structure>, string>
+    =
+    let structResults = 
+        structureNames 
+        |> Array.map(fun name -> tryFindStructure name structureSet)
+
+    let anyError = Array.exists Result.isError structResults
+    
+    match anyError with 
+    | false -> 
+        let structureMap =
+            structResults
+            |> Array.map Result.toOption
+            |> Array.zip structureNames 
+            |> Array.filter(fun (name, structure) -> structure.IsSome)
+            |> Array.map(fun (name, structure) -> (name, structure.Value))
+            |> Map.ofArray
+        
+        Ok structureMap
+    | true -> 
+        let errorString = 
+            structResults
+            |> Array.indexed
+            |> Array.where(fun (i, res) -> res.IsError)
+            |> Array.map(fun (i, res) -> structureNames[i])
+            |> Array.fold(fun acc err -> acc + " " + err + " structure was not found.") "Errors:"
+
+        Error errorString
+
+
+/// extracts the SnapshotVolume of all structures on the structure map
+let findSnapshotVolumes
+    (structureSet : StructureSet)
+    (includeVacfix : bool)
+    (structureMap : Map<string,Structure>)
     : Map<string,SnapshotVolume>
     =
-    structureNames 
-    |> Array.map(fun name -> tryFindStructure2 name structureSet)
-    |> Array.zip structureNames 
-    |> Array.filter(fun (name, structure) -> structure.IsSome)
-    |> Array.map(fun (name, structure) -> (name, extractSnapshotVolume structureSet structure.Value))
-    |> Map.ofArray
-    |> fun volumeMap ->
-        if includeVacfix && volumeMap.ContainsKey "BODY"  && volumeMap.ContainsKey "COUCHSURFACE" then
-            let extraheight = 80.0<mm>
-            let lm = 50.0<mm>
-            
-            let volumeVacfix = 
-                vacfixVolume
-                    extraheight
-                    lm
-                    volumeMap.["BODY"]
-                    volumeMap.["COUCHSURFACE"]
+    let volumeMap =
+        structureMap
+        |> Map.map(fun key structure ->  extractSnapshotVolume structureSet structure)
 
-            volumeMap.Add ("VACFIX", volumeVacfix)
-        else
-            volumeMap
-   
+    let volumeMapvac =
+            if includeVacfix && volumeMap.ContainsKey "BODY"  && volumeMap.ContainsKey "COUCHSURFACE" then
+                let extraheight = 80.0<mm>
+                let lm = 50.0<mm>
+      
+                let volumeVacfix = 
+                    vacfixVolume
+                        extraheight
+                        lm
+                        volumeMap.["BODY"]
+                        volumeMap.["COUCHSURFACE"]
+                volumeMap.Add("VACFIX", volumeVacfix) 
+            else
+                volumeMap
+    volumeMapvac
 
+
+/// Makes a hull of all the volumes i the volume map elements.
 let makeConvexHullOfVolumes
     (volumeMap : Map<string,SnapshotVolume>)
     : SnapshotVolume
@@ -194,9 +201,6 @@ let makeConvexHullOfVolumes
             |> Array.head 
             |> findHullOfVolume 
 
-    
-    
-
 
 /// Runs the current collision check workflow
 let runCollisionCheckWorkflow
@@ -210,30 +214,25 @@ let runCollisionCheckWorkflow
 
         let! structureSet =
             tryGetCurrentStructureSet context
-        
-        let! body =
-            tryFindStructure "BODY" structureSet
 
-        let! couch =
-            tryFindStructure "COUCHSURFACE" structureSet
+        let! mapOfStructures = findBodyStructures structureSet [|"BODY"; "COUCHSURFACE"|]
 
+        let mapOfVolumes = findSnapshotVolumes structureSet true mapOfStructures
 
-        let mapOfVolumes = findBodyStructures structureSet true [|"BODY"; "COUCHSURFACE"|]
         let volume = makeConvexHullOfVolumes mapOfVolumes 
             
         
-
         let! bodyMesh =
-            body.MeshGeometry
+            mapOfStructures.["BODY"].MeshGeometry
             |> BodyMeshSnapshot.create
         let! couchMesh =
-            couch.MeshGeometry
+            mapOfStructures.["COUCHSURFACE"].MeshGeometry
             |> BodyMeshSnapshot.create
 
         let diskPoints = 
             plan
             |> getTreatmentBeams
-            |> createSliceAndDiskPointsFromBeams 550.0<mm> 10.0<mm> 390.0<mm>
+            |> createSliceAndDiskPointsFromBeams 550.0<mm> 20.0<mm> 390.0<mm>
 
         
         let bodyMeshValue = 
@@ -272,10 +271,10 @@ let runCollisionCheckWorkflow
             |>Array.toList
 
         
-        plotting diskPoints bodyMeshValue couchMeshValue VacfixLoop
-            
-        //if not filteredPoints.IsEmpty then
-        //    plotting filteredPoints bodyMeshValue couchMeshValue ConvexHullLoops
+        plotting diskPoints bodyMeshValue couchMeshValue VacfixLoop "test"
+        
+        if not filteredPoints.IsEmpty then
+            plotting filteredPoints bodyMeshValue couchMeshValue ConvexHullLoops "filterTest"
 
         showMessageBox (diskPoints.Length.ToString() + " points generated")
         return!

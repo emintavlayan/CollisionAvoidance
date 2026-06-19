@@ -72,6 +72,7 @@ let generateDiskOnBeamAxis
 
     diskCenter :: perimeterPoints
 
+
 /// Builds disks along a beam’s trajectory by sampling source/isocenter positions.
 /// For each sampled control point (or arc step) the function creates a disk
 /// via `generateDiskOnBeamAxis` and returns one array per step.
@@ -87,6 +88,7 @@ let generateDisksForBeam
     |> Array.map (fun (iso, src) ->
         generateDiskOnBeamAxis iso src offset pointsPerDisk
         |> List.toArray) // VVector[] for each disk
+
 
 let generateLineOnBeamAxis
     (isocenter : VVector) // Center point of the plan/beam in DICOM coords
@@ -168,7 +170,6 @@ let generateHalfDiskOnBeamAxis
             else
                 System.Math.PI*0.5 - patientAngleRadian 
 
-
     let perimeterPoints =
         [ 0 .. pointsPerDisk ]
         |> List.map (fun i ->
@@ -183,6 +184,7 @@ let generateHalfDiskOnBeamAxis
             diskCenter + offset)
 
     perimeterPoints
+
 
 /// Generates points along a halfdisk
 /// Rotation based on whether it is the first or last control point
@@ -207,7 +209,6 @@ let generateHalfDiskWithInterior
         generateHalfDiskOnBeamAxis isocenter sourcePosition offset res r firstDisk patientAngleRadian clockwise)
     |> List.concat
 
-   
 
 /// Generating points along the beams trajectory by sampling source/isocenter positions. 
 /// For each step along the beam trajectory the function creates a line otrhogonal to beam axis and trajectory
@@ -254,22 +255,17 @@ let generateSlicesAndHalfDisksRModified
     =
     let pointsPerLine = int (radius*2.0/resolution)
 
-    let rotation (points : VVector list) : VVector list =
-        points
-        |> List.map(fun vec -> VVector(vec.x * System.Math.Cos(patientAngleRadian) - vec.z * System.Math.Sin(patientAngleRadian), vec.y, vec.z * System.Math.Cos(patientAngleRadian)+vec.x * System.Math.Sin(patientAngleRadian)))
     let clockwise = true
     let linePoints = 
         srcPositions
         |> Array.map (fun (iso, src) ->
             generateLineOnBeamAxis iso src offset pointsPerLine (radius*2.0) patientAngleRadian
-            //|> rotation
             |> List.toArray)
 
     let diskPoints = 
         ([|Array.head(srcPositions); Array.last(srcPositions)|], [|true;false|])
         ||> Array.map2 (fun (iso, src) fst ->
             generateHalfDiskWithInterior iso src offset radius resolution fst patientAngleRadian clockwise
-            //|> rotation
             |> List.toArray)
 
     Array.append diskPoints linePoints
